@@ -14,7 +14,7 @@ export interface UserProfileData {
   lastName: string;
   age: number;
   occupation: string;
-  gender: 'male' | 'female' | 'other';
+  gender: string;
   favoriteSport: string;
   customSport?: string;
 }

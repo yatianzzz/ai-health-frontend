@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Descriptions, Avatar, Button, Tag, Divider, Statistic, Typography, message } from 'antd';
 import { UserOutlined, EditOutlined, HeartOutlined, FireOutlined, LineChartOutlined, StarOutlined } from '@ant-design/icons';
 import { useUser } from '../context/UserContext';
@@ -8,15 +8,23 @@ import UserProfileForm from '../components/UserProfileForm';
 const { Title, Text } = Typography;
 
 const UserProfile: React.FC = () => {
-  const { userProfile, updateUserProfile } = useUser();
+  const { userProfile, updateUserProfile, hasShownForm, setHasShownForm, isLoading } = useUser();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Only show the form if we haven't shown it before and there's no profile
+  useEffect(() => {
+    if (!isLoading && !hasShownForm && !userProfile) {
+      setEditModalVisible(true);
+    }
+  }, [hasShownForm, userProfile, isLoading]);
 
   const handleProfileUpdate = async (updatedProfile: any) => {
     try {
       setIsSubmitting(true);
       await updateUserProfile(updatedProfile);
       setEditModalVisible(false);
+      setHasShownForm(true);
       message.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -25,6 +33,17 @@ const UserProfile: React.FC = () => {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading state while fetching profile
+  if (isLoading) {
+    return (
+      <Card>
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <p>Loading profile...</p>
+        </div>
+      </Card>
+    );
+  }
 
   if (!userProfile) {
     return (

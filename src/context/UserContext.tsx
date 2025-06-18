@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { UserProfileData } from '../components/UserProfileForm';
-import { getUserProfile, saveUserProfile } from '../services/userAPI';
+import { getUserProfile, saveUserProfile, updateUserProfile } from '../services/userAPI';
 
 interface UserContextType {
   userProfile: UserProfileData | null;
@@ -8,6 +8,8 @@ interface UserContextType {
   isLoading: boolean;
   error: string | null;
   updateUserProfile: (data: UserProfileData) => Promise<void>;
+  hasShownForm: boolean;
+  setHasShownForm: (value: boolean) => void;
 }
 
 const defaultContext: UserContextType = {
@@ -15,7 +17,9 @@ const defaultContext: UserContextType = {
   isProfileComplete: false,
   isLoading: false,
   error: null,
-  updateUserProfile: async () => {}
+  updateUserProfile: async () => {},
+  hasShownForm: false,
+  setHasShownForm: () => {}
 };
 
 const UserContext = createContext<UserContextType>(defaultContext);
@@ -30,6 +34,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasShownForm, setHasShownForm] = useState<boolean>(false);
 
   const fetchUserProfile = async () => {
     const token = localStorage.getItem('token');
@@ -39,25 +44,46 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     setError(null);
     
     try {
+      // Try to get user profile directly
       const response = await getUserProfile();
       if (response.code === 200 && response.data) {
         setUserProfile(response.data);
+        // If we successfully get the profile, mark form as shown
+        setHasShownForm(true);
+      } else {
+        // If no profile data, mark form as not shown yet
+        setHasShownForm(false);
+        setUserProfile(null);
       }
     } catch (err) {
       console.error('Failed to fetch user profile:', err);
+      setError('Failed to fetch user profile');
+      // On error, assume no profile exists
+      setHasShownForm(false);
+      setUserProfile(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const updateUserProfile = async (data: UserProfileData) => {
+  const handleUpdateProfile = async (data: UserProfileData) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await saveUserProfile(data);
+      let response;
+      if (userProfile) {
+        // If profile exists, use PUT to update
+        response = await updateUserProfile(data);
+      } else {
+        // If no profile exists, use POST to create
+        response = await saveUserProfile(data);
+      }
+      
       if (response.code === 200) {
         setUserProfile(data);
+        // After successful update, mark form as shown
+        setHasShownForm(true);
       } else {
         throw new Error(response.message || 'Failed to update profile');
       }
@@ -81,7 +107,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         isProfileComplete: !!userProfile,
         isLoading,
         error,
-        updateUserProfile
+        updateUserProfile: handleUpdateProfile,
+        hasShownForm,
+        setHasShownForm
       }}
     >
       {children}
