@@ -1,15 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag, Select, DatePicker, Tabs } from 'antd';
 import { CalendarOutlined, FireOutlined, AppleOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { ColumnProps } from 'antd/es/table';
 import { Line, Pie } from '@ant-design/charts';
+import { useDiet } from '../context/DietContext';
 
 const { TabPane } = Tabs;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 interface FoodRecord {
-  id: string;
+  id: number;
   name: string;
   category: string;
   calories: number;
@@ -29,7 +30,7 @@ interface DailyNutrition {
 
 const mockFoodRecords: FoodRecord[] = [
   {
-    id: '1',
+    id: 1,
     name: 'Grilled Chicken Breast',
     category: 'protein',
     calories: 165,
@@ -40,7 +41,7 @@ const mockFoodRecords: FoodRecord[] = [
     time: '12:30'
   },
   {
-    id: '2',
+    id: 2,
     name: 'Brown Rice',
     category: 'grains',
     calories: 215,
@@ -51,7 +52,7 @@ const mockFoodRecords: FoodRecord[] = [
     time: '12:30'
   },
   {
-    id: '3',
+    id: 3,
     name: 'Steamed Broccoli',
     category: 'vegetables',
     calories: 55,
@@ -62,7 +63,7 @@ const mockFoodRecords: FoodRecord[] = [
     time: '12:30'
   },
   {
-    id: '4',
+    id: 4,
     name: 'Apple',
     category: 'fruits',
     calories: 95,
@@ -73,7 +74,7 @@ const mockFoodRecords: FoodRecord[] = [
     time: '15:45'
   },
   {
-    id: '5',
+    id: 5,
     name: 'Oatmeal',
     category: 'grains',
     calories: 150,
@@ -84,7 +85,7 @@ const mockFoodRecords: FoodRecord[] = [
     time: '08:00'
   },
   {
-    id: '6',
+    id: 6,
     name: 'Salmon Fillet',
     category: 'protein',
     calories: 367,
@@ -131,9 +132,55 @@ const getMealTypeColor = (mealType: string) => {
 
 // 使用React.memo包裹组件，避免不必要的重新渲染
 const DietaryDataDisplay: React.FC = React.memo(() => {
+  const { foodItems, dietaryRecords, fetchFoodItems, fetchDietaryRecords, isLoading } = useDiet();
   const [dateRange] = useState<[string, string]>(['2023-05-10', '2023-05-16']);
   const [selectedMealType, setSelectedMealType] = useState<string>('all');
   const [activeChartTab, setActiveChartTab] = useState<string>('1');
+
+  useEffect(() => {
+    if (dietaryRecords.length === 0) {
+      fetchDietaryRecords();
+    }
+  }, [dietaryRecords.length, fetchDietaryRecords]);
+
+  // 2. dietaryRecords 加载后，批量加载所有 foodItems
+  useEffect(() => {
+    const loadAllFoodItems = async () => {
+      if (dietaryRecords.length > 0) {
+        // 清空旧数据（如有必要）
+        // setFoodItems([]);
+        // 批量加载所有 recordId 的 food items
+        for (const record of dietaryRecords) {
+          await fetchFoodItems(record.id);
+        }
+      }
+    };
+    loadAllFoodItems();
+  }, [dietaryRecords, fetchFoodItems]);
+  
+  const mergedFoodRecords = useMemo(() => {
+    // 以 dietaryRecordId 关联 dietaryRecords
+    const recordMap = new Map();
+    dietaryRecords.forEach(rec => {
+      recordMap.set(rec.id, rec);
+    });
+    return foodItems.map(item => {
+      const record = recordMap.get(item.dietaryRecordId) || {};
+      return {
+        ...item,
+        mealType: record.mealType || '',
+        date: record.recordDate || '',
+        time: record.recordTime ? (record.recordTime.length > 5 ? record.recordTime.slice(0, 5) : record.recordTime) : ''
+      };
+    });
+  }, [foodItems, dietaryRecords]);
+
+  const filteredFoodRecords = useMemo(() => 
+    selectedMealType === 'all' 
+      ? mergedFoodRecords 
+      : mergedFoodRecords.filter(record => record.mealType === selectedMealType),
+    [selectedMealType, mergedFoodRecords]
+  );
 
   // 使用useMemo缓存表格列配置，避免重新渲染时重新创建
   const columns = useMemo<ColumnProps<FoodRecord>[]>(() => [
@@ -262,12 +309,12 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   }), [categoryData]);
 
   
-  const filteredFoodRecords = useMemo(() => 
-    selectedMealType === 'all' 
-      ? mockFoodRecords 
-      : mockFoodRecords.filter(record => record.mealType === selectedMealType),
-    [selectedMealType]
-  );
+  // const filteredFoodRecords = useMemo(() => 
+  //   selectedMealType === 'all' 
+  //     ? mockFoodRecords 
+  //     : mockFoodRecords.filter(record => record.mealType === selectedMealType),
+  //   [selectedMealType]
+  // );
 
   return (
     <div>

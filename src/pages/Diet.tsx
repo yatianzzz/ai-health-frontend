@@ -10,32 +10,32 @@ const { TabPane } = Tabs;
 const Diet: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('1');
   const { 
-    addDietaryRecord, 
-    fetchDietaryRecords, 
-    fetchCalorieData, 
+    // addDietaryRecord, 
+    // fetchDietaryRecords, 
+    // fetchCalorieData, 
     isLoading 
   } = useDiet();
   
 
-  const fetchData = useCallback(() => {
-    fetchDietaryRecords();
-    fetchCalorieData('week');
-  }, [fetchDietaryRecords, fetchCalorieData]);
+  // const fetchData = useCallback(() => {
+  //   fetchDietaryRecords();
+  //   // fetchCalorieData('week');
+  // }, [fetchDietaryRecords]);
   
  
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  // useEffect(() => {
+  //   fetchData();
+  // }, [fetchData]);
   
-  const handleDietaryFormSubmit = async (values: any) => {
-    try {
-      await addDietaryRecord(values);
+  // const handleDietaryFormSubmit = async (values: any) => {
+  //   try {
+  //     await addDietaryRecord(values);
      
-      setActiveTab('2');
-    } catch (error) {
-      console.error('Error submitting dietary record:', error);
-    }
-  };
+  //     setActiveTab('2');
+  //   } catch (error) {
+  //     console.error('Error submitting dietary record:', error);
+  //   }
+  // };
   
  
   const handleTabChange = (key: string) => {
@@ -53,7 +53,7 @@ const Diet: React.FC = () => {
         <TabPane tab="Add Dietary Record" key="1">
           <Row gutter={[24, 24]}>
             <Col xs={24} lg={16}>
-              <DietaryForm onSubmit={handleDietaryFormSubmit} loading={isLoading} />
+              <DietaryForm loading={isLoading} />
             </Col>
             <Col xs={24} lg={8}>
               <Card title="Dietary Tips" style={{ height: '100%' }}>

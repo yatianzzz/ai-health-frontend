@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Select, InputNumber, DatePicker, TimePicker, Card, message, Space } from 'antd';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+import { createDietaryRecord, createFoodItem, DietaryRecord, FoodItem } from '../services/dietAPI';
+import { useDiet } from '../context/DietContext';
 
 const { Option } = Select;
 const { TextArea } = Input;
 
 interface DietaryFormProps {
-  onSubmit: (values: any) => void;
+  onSubmit?: (values: any) => void;
   loading?: boolean;
 }
 
@@ -30,27 +33,70 @@ const mealTypes = [
 
 const DietaryForm: React.FC<DietaryFormProps> = ({ onSubmit, loading = false }) => {
   const [form] = Form.useForm();
-  
-  const handleSubmit = (values: any) => {
-    // Calculate total calories
-    const totalCalories = values.foodItems.reduce(
-      (sum: number, item: any) => sum + (item.calories || 0),
-      0
-    );
-    
-    // Add date and total calories to the submission
-    const formData = {
-      ...values,
-      totalCalories,
-      date: values.date.format('YYYY-MM-DD'),
-      time: values.time.format('HH:mm')
-    };
-    
-    onSubmit(formData);
-    message.success('Dietary record saved successfully!');
-    form.resetFields();
+  const [submitting, setSubmitting] = useState(false);
+  const { fetchDietaryRecords, fetchFoodItems } = useDiet();
+
+  const handleSubmit = async (values: any) => {
+    console.log('DietaryForm handleSubmit called', values);
+    setSubmitting(true);
+    try {
+      // 1. 组装 dietary record 数据
+      const totalCalories = values.foodItems.reduce(
+        (sum: number, item: any) => sum + (item.calories || 0),
+        0
+      );
+      const recordDate = values.date.format('YYYY-MM-DD');
+      const timeObj = values.time;
+      // const recordTime = {
+      //   hour: timeObj.hour(),
+      //   minute: timeObj.minute(),
+      //   second: timeObj.second ? timeObj.second() : 0,
+      //   nano: 0
+      // };
+      const recordTime = timeObj.format('HH:mm');
+      const userId = Number(localStorage.getItem('userId'));
+      const dietaryRecordData = {
+        userId,
+        recordDate,
+        recordTime,
+        mealType: values.mealType,
+        notes: values.notes || '',
+        totalCalories
+      };
+      console.log('dietaryRecordData:', dietaryRecordData);
+      // 2. 创建 dietary record
+      const dietaryRecordRes = await createDietaryRecord(dietaryRecordData);
+      console.log('dietaryRecordRes:', dietaryRecordRes);
+      const dietaryRecordId = dietaryRecordRes.data.id;
+      // 3. 循环创建 food items
+      await Promise.all(
+        (values.foodItems || []).map((item: any) =>
+          createFoodItem({
+            dietaryRecordId: Number(dietaryRecordId),
+            name: item.name,
+            category: item.category,
+            quantity: item.quantity,
+            unit: item.unit,
+            calories: item.calories
+          })
+        )
+      );
+      // 4. 自动刷新 dietaryRecords 和 foodItems
+      await fetchDietaryRecords();
+      if (typeof dietaryRecordId === 'number') {
+        await fetchFoodItems(dietaryRecordId);
+      }
+      message.success('Dietary record saved successfully!');
+      form.resetFields();
+      if (onSubmit) onSubmit(values);
+    } catch (err: any) {
+      console.error('Save dietary record error:', err?.response || err);
+      message.error('Failed to save dietary record.');
+    } finally {
+      setSubmitting(false);
+    }
   };
-  
+
   return (
     <Card title="Add Dietary Record" bordered={false}>
       <Form 
@@ -181,7 +227,7 @@ const DietaryForm: React.FC<DietaryFormProps> = ({ onSubmit, loading = false }) 
         </Form.Item>
         
         <Form.Item>
-          <Button type="primary" htmlType="submit" loading={loading} block>
+          <Button type="primary" htmlType="submit" loading={loading || submitting} block>
             Save Dietary Record
           </Button>
         </Form.Item>

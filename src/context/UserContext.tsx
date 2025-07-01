@@ -48,6 +48,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       const response = await getUserProfile();
       if (response.code === 200 && response.data) {
         setUserProfile(response.data);
+        if (response.data.userId) {
+          localStorage.setItem('userId', String(response.data.userId));
+        }
         // If we successfully get the profile, mark form as shown
         setHasShownForm(true);
       } else {
@@ -82,6 +85,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
       
       if (response.code === 200) {
         setUserProfile(data);
+        if (data.userId) {
+          localStorage.setItem('userId', String(data.userId));
+        }
         // After successful update, mark form as shown
         setHasShownForm(true);
       } else {

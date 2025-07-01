@@ -10,6 +10,7 @@ interface UserProfileFormProps {
 }
 
 export interface UserProfileData {
+  userId?: number;
   firstName: string;
   lastName: string;
   age: number;
