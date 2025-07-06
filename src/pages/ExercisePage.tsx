@@ -6,6 +6,7 @@ import ExerciseAIChatBox from '../components/ExerciseAIChatBox';
 import ExerciseForm from '../components/ExerciseForm';
 import WeeklyExerciseSummary from '../components/WeeklyExerciseSummary';
 import ExerciseRecommendation from '../components/ExerciseRecommendation';
+import WeeklyExerciseRecommendation from '../components/WeeklyExerciseRecommendation';
 import { saveExerciseData } from '../services/exerciseAPI';
 import { ExerciseData } from '../components/ExerciseForm';
 import { useExercise } from '../context/ExerciseContext';
@@ -99,6 +100,9 @@ const ExercisePage: React.FC = () => {
       
       {/* Weekly Exercise Summary */}
       <WeeklyExerciseSummary />
+      
+      {/* AI Weekly Exercise Recommendation */}
+      <WeeklyExerciseRecommendation />
       
       {/* Exercise Overview */}
       <Card 
