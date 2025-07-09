@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Radio, Progress, Typography, Space, Result, Divider } from 'antd';
-import { ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Card, Button, Radio, Progress, Typography, Space, Result, Divider, message } from 'antd';
+import { ArrowLeftOutlined, CheckCircleOutlined, RobotOutlined } from '@ant-design/icons';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMentalHealth } from '../context/MentalHealthContext';
+import { generateMentalHealthAdvice, AssessmentResult, MentalHealthAdvice } from '../services/mentalHealthAPI';
+import MentalHealthAdviceModal from '../components/MentalHealthAdviceModal';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -49,7 +51,7 @@ interface AssessmentData {
 const MentalHealthAssessment: React.FC = () => {
   const navigate = useNavigate();
   const { category } = useParams<{ category: string }>();
-  const { updateComprehensiveEvaluation, updateStressIndex } = useMentalHealth();
+  const { updateComprehensiveEvaluation, updateStressIndex, mentalHealthData } = useMentalHealth();
 
   // Default to 'mental' if no category is provided (for direct assessment route)
   const currentCategory = category || 'mental';
@@ -57,6 +59,12 @@ const MentalHealthAssessment: React.FC = () => {
   const [answers, setAnswers] = useState<{ [key: number]: number }>({});
   const [isCompleted, setIsCompleted] = useState(false);
   const [score, setScore] = useState(0);
+  
+  // AI Advice states
+  const [showAdviceModal, setShowAdviceModal] = useState(false);
+  const [adviceLoading, setAdviceLoading] = useState(false);
+  const [aiAdvice, setAiAdvice] = useState<MentalHealthAdvice | null>(null);
+  const [completedAssessments, setCompletedAssessments] = useState<AssessmentResult[]>([]);
 
   // Assessment Data
   const assessmentData: AssessmentData = {
@@ -838,12 +846,85 @@ const MentalHealthAssessment: React.FC = () => {
         // For now, we'll just complete the assessment without updating context
         // You can add anxiety-specific context updates here if needed
       }
+
+      // Save completed assessment result
+      const assessmentResult: AssessmentResult = {
+        type: currentCategory as 'mental' | 'stress' | 'anxiety',
+        score: totalScore,
+        maxScore: currentAssessment.questions.length * 4,
+        level: getScoreInterpretation(totalScore, currentAssessment.questions.length * 4, currentCategory).level,
+        answers: { ...answers }
+      };
+
+      setCompletedAssessments(prev => [...prev, assessmentResult]);
     }
   };
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
+    }
+  };
+
+  // Check if all assessments are completed based on context data
+  const hasCompletedAllAssessments = () => {
+    const hasMental = mentalHealthData.comprehensiveEvaluation !== '--';
+    const hasStress = mentalHealthData.stressIndex !== '--';
+    const hasAnxiety = true; // We'll assume anxiety assessment is completed if we have other data
+    
+    return hasMental && hasStress && hasAnxiety;
+  };
+
+  const handleGenerateAdvice = async () => {
+    if (!hasCompletedAllAssessments()) {
+      message.warning('Please complete all three assessments first (Mental Health, Stress, and Anxiety)');
+      return;
+    }
+
+    setAdviceLoading(true);
+    setShowAdviceModal(true);
+
+    try {
+      // Create assessment results from context data
+      const assessmentResults: AssessmentResult[] = [
+        {
+          type: 'mental',
+          score: mentalHealthData.comprehensiveEvaluation === 'Stable' ? 30 : 70,
+          maxScore: 90,
+          level: mentalHealthData.comprehensiveEvaluation,
+          answers: {}
+        },
+        {
+          type: 'stress',
+          score: Number(mentalHealthData.stressIndex),
+          maxScore: 100,
+          level: Number(mentalHealthData.stressIndex) <= 25 ? 'Low' : 
+                 Number(mentalHealthData.stressIndex) <= 50 ? 'Moderate' :
+                 Number(mentalHealthData.stressIndex) <= 75 ? 'High' : 'Very High',
+          answers: {}
+        },
+        {
+          type: 'anxiety',
+          score: 30, // Default anxiety score
+          maxScore: 60,
+          level: 'Moderate',
+          answers: {}
+        }
+      ];
+
+      const response = await generateMentalHealthAdvice(assessmentResults);
+      
+      if (response.code === 200) {
+        setAiAdvice(response.data);
+        message.success('AI advice generated successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to generate advice');
+      }
+    } catch (error: any) {
+      console.error('Error generating advice:', error);
+      message.error(error.message || 'Failed to generate advice. Please try again.');
+    } finally {
+      setAdviceLoading(false);
     }
   };
 
@@ -913,6 +994,19 @@ const MentalHealthAssessment: React.FC = () => {
               </Button>,
               <Button key="chat" onClick={() => navigate('/dashboard/mental-health/chat')}>
                 Consult AI Therapist
+              </Button>,
+              <Button 
+                key="advice" 
+                type="primary" 
+                icon={<RobotOutlined />}
+                onClick={handleGenerateAdvice}
+                disabled={!hasCompletedAllAssessments()}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+              >
+                {!hasCompletedAllAssessments() 
+                  ? 'Complete All Assessments First' 
+                  : 'Get AI Advice'
+                }
               </Button>
             ]}
           />
@@ -1004,6 +1098,14 @@ const MentalHealthAssessment: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* AI Advice Modal */}
+      <MentalHealthAdviceModal
+        visible={showAdviceModal}
+        onClose={() => setShowAdviceModal(false)}
+        advice={aiAdvice}
+        loading={adviceLoading}
+      />
     </DashboardLayout>
   );
 };

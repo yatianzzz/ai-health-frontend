@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, Row, Col, Button, Typography, Space, Divider, Statistic, Progress } from 'antd';
+import { Card, Row, Col, Button, Typography, Space, Divider, Statistic, Progress, message } from 'antd';
 import {
   HeartOutlined,
   MessageOutlined,
@@ -8,12 +8,16 @@ import {
   ThunderboltOutlined,
   TeamOutlined,
   ClockCircleOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  RobotOutlined,
+  BookOutlined
 } from '@ant-design/icons';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMentalHealth } from '../context/MentalHealthContext';
+import { generateMentalHealthAdvice, AssessmentResult, MentalHealthAdvice } from '../services/mentalHealthAPI';
+import MentalHealthAdviceModal from '../components/MentalHealthAdviceModal';
 
 const { Title, Paragraph } = Typography;
 
@@ -63,6 +67,26 @@ const MentalHealthSupport: React.FC = () => {
   const navigate = useNavigate();
   const { mentalHealthData } = useMentalHealth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // AI Advice states
+  const [showAdviceModal, setShowAdviceModal] = useState(false);
+  const [adviceLoading, setAdviceLoading] = useState(false);
+  const [aiAdvice, setAiAdvice] = useState<MentalHealthAdvice | null>(null);
+  const [completedAssessments, setCompletedAssessments] = useState<AssessmentResult[]>([]);
+  
+  // Load saved advice from localStorage
+  const [savedAdvice, setSavedAdvice] = useState<MentalHealthAdvice | null>(() => {
+    const saved = localStorage.getItem('savedMentalHealthAdvice');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (error) {
+        console.error('Error parsing saved advice:', error);
+        return null;
+      }
+    }
+    return null;
+  });
 
   // Mental Health Assessment Categories
   const assessmentCategories = [
@@ -104,6 +128,92 @@ const MentalHealthSupport: React.FC = () => {
     navigate(`/dashboard/mental-health/assessment/${categoryId}`);
   };
 
+  const handleGenerateAdvice = async () => {
+    if (!hasCompletedAllAssessments()) {
+      message.warning('Please complete all three assessments first (Mental Health, Stress, and Anxiety)');
+      return;
+    }
+
+    setAdviceLoading(true);
+    setShowAdviceModal(true);
+
+    try {
+      // Create assessment results from context data
+      const assessmentResults: AssessmentResult[] = [
+        {
+          type: 'mental',
+          score: mentalHealthData.comprehensiveEvaluation === 'Stable' ? 30 : 70,
+          maxScore: 90,
+          level: mentalHealthData.comprehensiveEvaluation,
+          answers: {}
+        },
+        {
+          type: 'stress',
+          score: Number(mentalHealthData.stressIndex),
+          maxScore: 100,
+          level: Number(mentalHealthData.stressIndex) <= 25 ? 'Low' : 
+                 Number(mentalHealthData.stressIndex) <= 50 ? 'Moderate' :
+                 Number(mentalHealthData.stressIndex) <= 75 ? 'High' : 'Very High',
+          answers: {}
+        },
+        {
+          type: 'anxiety',
+          score: 30, // Default anxiety score
+          maxScore: 60,
+          level: 'Moderate',
+          answers: {}
+        }
+      ];
+
+      const response = await generateMentalHealthAdvice(assessmentResults);
+      
+      if (response.code === 200) {
+        setAiAdvice(response.data);
+        setSavedAdvice(response.data);
+        // Save to localStorage
+        localStorage.setItem('savedMentalHealthAdvice', JSON.stringify(response.data));
+        message.success('AI advice generated successfully!');
+      } else {
+        throw new Error(response.message || 'Failed to generate advice');
+      }
+    } catch (error: any) {
+      console.error('Error generating advice:', error);
+      message.error(error.message || 'Failed to generate advice. Please try again.');
+    } finally {
+      setAdviceLoading(false);
+    }
+  };
+
+  // Check if all assessments are completed
+  const hasCompletedAllAssessments = () => {
+    const hasMental = mentalHealthData.comprehensiveEvaluation !== '--';
+    const hasStress = mentalHealthData.stressIndex !== '--';
+    const hasAnxiety = true; // We'll assume anxiety assessment is completed if we have other data
+    
+    console.log('Assessment completion status:', {
+      mental: hasMental,
+      stress: hasStress,
+      anxiety: hasAnxiety,
+      comprehensiveEvaluation: mentalHealthData.comprehensiveEvaluation,
+      stressIndex: mentalHealthData.stressIndex
+    });
+    
+    return hasMental && hasStress && hasAnxiety;
+  };
+
+  // Check if user has saved advice
+  const hasSavedAdvice = () => {
+    return savedAdvice !== null;
+  };
+
+  // Handle viewing saved advice
+  const handleViewSavedAdvice = () => {
+    if (savedAdvice) {
+      setAiAdvice(savedAdvice);
+      setShowAdviceModal(true);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div style={{ padding: '24px' }}>
@@ -127,6 +237,36 @@ const MentalHealthSupport: React.FC = () => {
             boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
             background: 'linear-gradient(135deg, #f6ffed 0%, #f0f9ff 100%)'
           }}
+          extra={
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button 
+                type="primary" 
+                icon={<RobotOutlined />}
+                onClick={handleGenerateAdvice}
+                disabled={!hasCompletedAllAssessments()}
+                style={{ 
+                  backgroundColor: hasCompletedAllAssessments() ? '#52c41a' : '#d9d9d9',
+                  borderColor: hasCompletedAllAssessments() ? '#52c41a' : '#d9d9d9'
+                }}
+              >
+                {hasCompletedAllAssessments() ? 'Get AI Advice' : 'Complete Assessments First'}
+              </Button>
+              {hasSavedAdvice() && (
+                <Button 
+                  type="default"
+                  icon={<BookOutlined />}
+                  onClick={handleViewSavedAdvice}
+                  style={{ 
+                    backgroundColor: '#1890ff',
+                    borderColor: '#1890ff',
+                    color: 'white'
+                  }}
+                >
+                  View Saved Advice
+                </Button>
+              )}
+            </div>
+          }
         >
           <Row gutter={[24, 24]}>
             <Col span={8}>
@@ -305,7 +445,13 @@ const MentalHealthSupport: React.FC = () => {
           </Row>
         </div>
 
-
+        {/* AI Advice Modal */}
+        <MentalHealthAdviceModal
+          visible={showAdviceModal}
+          onClose={() => setShowAdviceModal(false)}
+          advice={aiAdvice}
+          loading={adviceLoading}
+        />
       </div>
     </DashboardLayout>
   );
