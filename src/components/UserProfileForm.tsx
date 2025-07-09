@@ -39,6 +39,8 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({ visible, onClose, onS
   const [selectedSport, setSelectedSport] = useState<string>('');
   const [submitLoading, setSubmitLoading] = useState(false);
 
+
+
   const handleSubmit = async () => {
     try {
       setSubmitLoading(true);
@@ -80,7 +82,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({ visible, onClose, onS
   return (
     <Modal
       title="Complete Your Profile"
-      visible={visible}
+      open={visible}
       onCancel={handleCancel}
       footer={[
         <Space key="footer-buttons">

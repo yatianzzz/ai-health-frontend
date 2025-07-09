@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Tag, Button, Avatar } from 'antd';
+import { Card, Row, Col, Typography, Tag, Button, Avatar, message } from 'antd';
 import { CalendarOutlined, EyeOutlined, HeartOutlined, ShareAltOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph, Text } = Typography;
@@ -13,6 +13,7 @@ interface Article {
   category: string;
   views: number;
   likes: number;
+  url: string;
   author: {
     name: string;
     avatar: string;
@@ -29,6 +30,7 @@ const articles: Article[] = [
     category: 'Mental Health',
     views: 1245,
     likes: 328,
+    url: 'https://www.healthline.com/health/facts-about-stress',
     author: {
       name: 'Dr. Sarah Johnson',
       avatar: 'https://randomuser.me/api/portraits/women/44.jpg'
@@ -43,6 +45,7 @@ const articles: Article[] = [
     category: 'Nutrition',
     views: 987,
     likes: 245,
+    url: 'https://www.healthline.com/program/everyday-essentials-for-managing-your-blood-sugar',
     author: {
       name: 'Michael Chen, RD',
       avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
@@ -57,6 +60,7 @@ const articles: Article[] = [
     category: 'Sleep',
     views: 756,
     likes: 189,
+    url: 'https://www.healthline.com/health-news/why-poor-sleep-may-increase-heart-risk-in-women',
     author: {
       name: 'Dr. James Wilson',
       avatar: 'https://randomuser.me/api/portraits/men/67.jpg'
@@ -65,11 +69,23 @@ const articles: Article[] = [
 ];
 
 const HealthArticles: React.FC = () => {
+  const handleArticleClick = (article: Article) => {
+    // Open specific article URL in new tab
+    window.open(article.url, '_blank');
+    message.info(`Opening article: ${article.title}`);
+  };
+
+  const handleViewAll = () => {
+    // Open health news website
+    window.open('https://www.healthline.com/health-news', '_blank');
+    message.info('Opening health news page');
+  };
+
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={4} style={{ margin: 0 }}>Health Articles & News</Title>
-        <Button type="link">View All</Button>
+        <Button type="link" onClick={handleViewAll}>View All</Button>
       </div>
       
       <Row gutter={[16, 16]}>
@@ -77,10 +93,12 @@ const HealthArticles: React.FC = () => {
           <Col xs={24} sm={24} md={8} key={article.id}>
             <Card
               hoverable
+              onClick={() => handleArticleClick(article)}
+              style={{ cursor: 'pointer' }}
               cover={
                 <div style={{ height: 200, overflow: 'hidden' }}>
-                  <img 
-                    alt={article.title} 
+                  <img
+                    alt={article.title}
                     src={article.image}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />

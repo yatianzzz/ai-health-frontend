@@ -34,7 +34,7 @@ const mealTypes = [
 const DietaryForm: React.FC<DietaryFormProps> = ({ onSubmit, loading = false }) => {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const { fetchDietaryRecords, fetchFoodItems } = useDiet();
+  const { fetchDietaryRecords, fetchFoodItems, refreshAllData } = useDiet();
 
   const handleSubmit = async (values: any) => {
     console.log('DietaryForm handleSubmit called', values);
@@ -81,11 +81,8 @@ const DietaryForm: React.FC<DietaryFormProps> = ({ onSubmit, loading = false }) 
           })
         )
       );
-      // 4. 自动刷新 dietaryRecords 和 foodItems
-      await fetchDietaryRecords();
-      if (typeof dietaryRecordId === 'number') {
-        await fetchFoodItems(dietaryRecordId);
-      }
+      // 4. 自动刷新所有数据
+      await refreshAllData();
       message.success('Dietary record saved successfully!');
       form.resetFields();
       if (onSubmit) onSubmit(values);

@@ -1,6 +1,7 @@
-import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
 import { UserProfileData } from '../components/UserProfileForm';
 import { getUserProfile, saveUserProfile, updateUserProfile } from '../services/userAPI';
+import { useAuth } from './AuthContext';
 
 interface UserContextType {
   userProfile: UserProfileData | null;
@@ -10,6 +11,7 @@ interface UserContextType {
   updateUserProfile: (data: UserProfileData) => Promise<void>;
   hasShownForm: boolean;
   setHasShownForm: (value: boolean) => void;
+  refreshProfile: () => Promise<void>;
 }
 
 const defaultContext: UserContextType = {
@@ -19,7 +21,8 @@ const defaultContext: UserContextType = {
   error: null,
   updateUserProfile: async () => {},
   hasShownForm: false,
-  setHasShownForm: () => {}
+  setHasShownForm: () => {},
+  refreshProfile: async () => {}
 };
 
 const UserContext = createContext<UserContextType>(defaultContext);
@@ -31,18 +34,19 @@ interface UserProviderProps {
 }
 
 export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
+  const { isAuthenticated, isInitialized } = useAuth();
   const [userProfile, setUserProfile] = useState<UserProfileData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [hasShownForm, setHasShownForm] = useState<boolean>(false);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!token || !isAuthenticated) return;
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Try to get user profile directly
       const response = await getUserProfile();
@@ -67,7 +71,7 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isAuthenticated]);
 
   const handleUpdateProfile = async (data: UserProfileData) => {
     setIsLoading(true);
@@ -103,8 +107,16 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    // Only fetch profile after auth is initialized and user is authenticated
+    if (isInitialized && isAuthenticated) {
+      fetchUserProfile();
+    } else if (isInitialized && !isAuthenticated) {
+      // If auth is initialized but user is not authenticated, reset profile state
+      setUserProfile(null);
+      setHasShownForm(false);
+      setError(null);
+    }
+  }, [isInitialized, isAuthenticated, fetchUserProfile]);
 
   return (
     <UserContext.Provider
@@ -115,7 +127,8 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         error,
         updateUserProfile: handleUpdateProfile,
         hasShownForm,
-        setHasShownForm
+        setHasShownForm,
+        refreshProfile: fetchUserProfile
       }}
     >
       {children}

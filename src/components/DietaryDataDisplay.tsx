@@ -4,8 +4,14 @@ import { CalendarOutlined, FireOutlined, AppleOutlined, ArrowUpOutlined, ArrowDo
 import { ColumnProps } from 'antd/es/table';
 import { Line, Pie } from '@ant-design/charts';
 import { useDiet } from '../context/DietContext';
-
-const { TabPane } = Tabs;
+import {
+  getFoodCategoriesData,
+  getCalorieComparisonChartData,
+  getDailySummaryData,
+  FoodCategoryData,
+  CalorieComparisonData,
+  DailySummaryData
+} from '../services/dietAPI';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -137,10 +143,46 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   const [selectedMealType, setSelectedMealType] = useState<string>('all');
   const [activeChartTab, setActiveChartTab] = useState<string>('1');
 
+  // New state for real data
+  const [foodCategoriesData, setFoodCategoriesData] = useState<FoodCategoryData[]>([]);
+  const [calorieComparisonData, setCalorieComparisonData] = useState<CalorieComparisonData[]>([]);
+  const [dailySummaryData, setDailySummaryData] = useState<DailySummaryData | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // Fetch stats data
+  const fetchStatsData = async () => {
+    setStatsLoading(true);
+    try {
+      const [categoriesResponse, comparisonResponse, summaryResponse] = await Promise.all([
+        getFoodCategoriesData(),
+        getCalorieComparisonChartData(),
+        getDailySummaryData()
+      ]);
+
+      if (categoriesResponse.code === 200) {
+        setFoodCategoriesData(categoriesResponse.data || []);
+      }
+
+      if (comparisonResponse.code === 200) {
+        setCalorieComparisonData(comparisonResponse.data || []);
+      }
+
+      if (summaryResponse.code === 200) {
+        setDailySummaryData(summaryResponse.data);
+      }
+    } catch (error) {
+      console.error('Error fetching stats data:', error);
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (dietaryRecords.length === 0) {
       fetchDietaryRecords();
     }
+    // Fetch stats data when component mounts
+    fetchStatsData();
   }, [dietaryRecords.length, fetchDietaryRecords]);
 
   // 2. dietaryRecords 加载后，批量加载所有 foodItems
@@ -232,31 +274,19 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   ], []);
 
   
-  const calorieData = useMemo(() => mockDailyData.map(item => ({
-    date: item.date,
-    value: item.caloriesConsumed,
-    category: 'Consumed',
-  })).concat(
-    mockDailyData.map(item => ({
-      date: item.date,
-      value: item.caloriesBurned,
-      category: 'Burned',
-    }))
-  ), []);
+  // Use real data instead of mock data
+  const calorieData = useMemo(() => calorieComparisonData, [calorieComparisonData]);
 
- 
-  const categoryData = useMemo(() => mockFoodRecords.reduce((acc, item) => {
-    const existingCategory = acc.find(c => c.type === item.category);
-    if (existingCategory) {
-      existingCategory.value += item.calories;
-    } else {
-      acc.push({
-        type: item.category,
-        value: item.calories,
-      });
-    }
-    return acc;
-  }, [] as { type: string; value: number }[]), []);
+  const categoryData = useMemo(() => {
+    return foodCategoriesData.filter(item =>
+      item &&
+      item.type &&
+      item.type !== 'undefined' &&
+      item.type.trim() !== '' &&
+      item.value &&
+      item.value > 0
+    );
+  }, [foodCategoriesData]);
 
   
   const lineConfig = useMemo(() => ({
@@ -289,8 +319,6 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
     colorField: 'type',
     radius: 0.8,
     label: {
-      type: 'inner',
-      offset: '-30%',
       content: '{percentage}',
       style: {
         textAlign: 'center',
@@ -323,10 +351,11 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
           <Card>
             <Statistic
               title="Today's Calories Consumed"
-              value={2200}
+              value={dailySummaryData?.caloriesConsumed || 0}
               valueStyle={{ color: '#cf1322' }}
               prefix={<AppleOutlined />}
               suffix="kcal"
+              loading={statsLoading}
             />
           </Card>
         </Col>
@@ -334,10 +363,11 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
           <Card>
             <Statistic
               title="Today's Calories Burned"
-              value={2250}
+              value={dailySummaryData?.caloriesBurned || 0}
               valueStyle={{ color: '#3f8600' }}
               prefix={<FireOutlined />}
               suffix="kcal"
+              loading={statsLoading}
             />
           </Card>
         </Col>
@@ -345,32 +375,52 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
           <Card>
             <Statistic
               title="Net Calories"
-              value={-50}
+              value={dailySummaryData?.netCalories || 0}
               precision={0}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<ArrowDownOutlined />}
+              valueStyle={{
+                color: dailySummaryData?.trend === 'up' ? '#cf1322' : '#3f8600'
+              }}
+              prefix={
+                dailySummaryData?.trend === 'up' ?
+                <ArrowUpOutlined /> :
+                <ArrowDownOutlined />
+              }
               suffix="kcal"
+              loading={statsLoading}
             />
           </Card>
         </Col>
       </Row>
 
-      <Tabs activeKey={activeChartTab} onChange={setActiveChartTab} style={{ marginTop: 16 }}>
-        <TabPane tab="Calorie Comparison" key="1">
-          <Card title="Calories Consumed vs. Burned">
-            <div style={{ height: 400 }}>
-              <Line {...lineConfig} />
-            </div>
-          </Card>
-        </TabPane>
-        <TabPane tab="Food Categories" key="2">
-          <Card title="Calorie Distribution by Food Category">
-            <div style={{ height: 400 }}>
-              <Pie {...pieConfig} />
-            </div>
-          </Card>
-        </TabPane>
-      </Tabs>
+      <Tabs
+        activeKey={activeChartTab}
+        onChange={setActiveChartTab}
+        style={{ marginTop: 16 }}
+        items={[
+          {
+            key: "1",
+            label: "Calorie Comparison",
+            children: (
+              <Card title="Calories Consumed vs. Burned">
+                <div style={{ height: 400 }}>
+                  <Line {...lineConfig} />
+                </div>
+              </Card>
+            )
+          },
+          {
+            key: "2",
+            label: "Food Categories",
+            children: (
+              <Card title="Calorie Distribution by Food Category">
+                <div style={{ height: 400 }}>
+                  <Pie {...pieConfig} />
+                </div>
+              </Card>
+            )
+          }
+        ]}
+      />
 
       <Card 
         title="Recent Food Records" 

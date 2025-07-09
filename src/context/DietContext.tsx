@@ -1,5 +1,4 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect, useCallback } from 'react';
-import { message } from 'antd';
 import { useAuth } from './AuthContext';
 import { 
   getDietaryRecords, 
@@ -17,8 +16,9 @@ interface DietContextType {
   // suggestions: any;
   isLoading: boolean;
   // addDietaryRecord: (record: any) => Promise<void>;
-  fetchDietaryRecords: () => Promise<void>;
+  fetchDietaryRecords: (forceRefresh?: boolean) => Promise<void>;
   fetchFoodItems: (recordId: number) => Promise<void>;
+  refreshAllData: () => Promise<void>;
   // fetchCalorieData: (period?: 'day' | 'week' | 'month') => Promise<void>; // 暂时注释
   // fetchDietarySuggestions: () => Promise<void>;
 }
@@ -31,7 +31,8 @@ const defaultContext: DietContextType = {
   isLoading: false,
   // addDietaryRecord: async () => {},
   fetchDietaryRecords: async () => {},
-  fetchFoodItems: async (_recordId: number) => {},
+  fetchFoodItems: async () => {},
+  refreshAllData: async () => {},
   // fetchCalorieData: async () => {}, // 暂时注释
   // fetchDietarySuggestions: async () => {}
 };
@@ -51,7 +52,7 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
   const [suggestions, setSuggestions] = useState<any>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [dataFetched, setDataFetched] = useState<boolean>(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isInitialized } = useAuth();
   
   
   // const addDietaryRecord = useCallback(async (record: any) => {
@@ -83,18 +84,22 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
   // }, []);
   
  
-  const fetchDietaryRecords = useCallback(async () => {
-   
-    if (dietaryRecords.length > 0) {
+  const fetchDietaryRecords = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh && dietaryRecords.length > 0) {
       return;
     }
-    
+
+    // Check if token exists before making API call
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No authentication token found, skipping dietary records fetch');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const userId = localStorage.getItem('userId') || 'current';
-      
       const response = await getDietaryRecords();
-      
+
       if (response.code === 200) {
         setDietaryRecords(response.data || []);
       } else {
@@ -102,7 +107,7 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
       }
     } catch (error: any) {
       console.error('Error fetching dietary records:', error);
-    
+      // 静默处理错误，不显示错误消息，因为后端可能没有运行
       setDietaryRecords([]);
     } finally {
       setIsLoading(false);
@@ -110,9 +115,26 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
   }, [dietaryRecords.length]);
   
   const fetchFoodItems = useCallback(async (recordId: number) => {
-    const response = await getFoodItems(recordId);
-    if (response.code === 200) {
-      setFoodItems(response.data || []);
+    // Check if token exists before making API call
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.warn('No authentication token found, skipping food items fetch');
+      return;
+    }
+
+    try {
+      const response = await getFoodItems(recordId);
+      if (response.code === 200) {
+        const newItems = response.data || [];
+        setFoodItems(prevItems => {
+          // Remove existing items for this recordId and add new ones
+          const filteredItems = prevItems.filter(item => item.dietaryRecordId !== recordId);
+          return [...filteredItems, ...newItems];
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching food items:', error);
+      // 静默处理错误
     }
   }, []);
   // const fetchCalorieData = useCallback(async (period: 'day' | 'week' | 'month' = 'week') => {
@@ -168,11 +190,22 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
   
  
   useEffect(() => {
+    // Only proceed if auth context is initialized
+    if (!isInitialized) {
+      return;
+    }
+
     if (isAuthenticated && !dataFetched) {
       const loadInitialData = async () => {
+        // Double check token exists before proceeding
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.warn('Token not found, skipping data load');
+          return;
+        }
+
         setIsLoading(true);
         try {
-        
           await fetchDietaryRecords();
           // 再批量加载所有 foodItems
           // 假设 dietaryRecords 已经被 setDietaryRecords 更新
@@ -186,21 +219,34 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
             }
           }
           setDataFetched(true);
+        } catch (error) {
+          console.error('Error loading initial diet data:', error);
+          // Don't set dataFetched to true if there was an error
         } finally {
           setIsLoading(false);
         }
       };
-      
+
       loadInitialData();
-    } else if (!isAuthenticated) {
-     
+    } else if (isInitialized && !isAuthenticated) {
       setDietaryRecords([]);
       // setCalorieData([]); // 暂时注释
       // setSuggestions(null);
       setDataFetched(false);
     }
-  }, [isAuthenticated, dataFetched, fetchDietaryRecords, /*fetchCalorieData,*/ /*fetchDietarySuggestions*/]);
- 
+  }, [isInitialized, isAuthenticated, dataFetched, fetchDietaryRecords, /*fetchCalorieData,*/ /*fetchDietarySuggestions*/]);
+
+  const refreshAllData = useCallback(async () => {
+    await fetchDietaryRecords(true);
+    // Clear food items and refetch them for all records
+    setFoodItems([]);
+    if (dietaryRecords.length > 0) {
+      for (const record of dietaryRecords) {
+        await fetchFoodItems(record.id);
+      }
+    }
+  }, [fetchDietaryRecords, fetchFoodItems, dietaryRecords]);
+
   const contextValue = React.useMemo(() => ({
     dietaryRecords,
     foodItems,
@@ -210,6 +256,7 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
     // addDietaryRecord,
     fetchDietaryRecords,
     fetchFoodItems,
+    refreshAllData,
     // fetchCalorieData, // 暂时注释
     // fetchDietarySuggestions
   }), [
@@ -221,6 +268,7 @@ export const DietProvider: React.FC<DietProviderProps> = ({ children }) => {
     // addDietaryRecord,
     fetchDietaryRecords,
     fetchFoodItems,
+    refreshAllData,
     // fetchCalorieData, // 暂时注释
     // fetchDietarySuggestions
   ]);

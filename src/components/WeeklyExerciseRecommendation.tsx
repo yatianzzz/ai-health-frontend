@@ -3,6 +3,7 @@ import { Card, Button, Typography, Space, Tabs, Row, Col, Alert, Spin, message, 
 import { RobotOutlined, ReloadOutlined, CalendarOutlined, FireOutlined, BugOutlined } from '@ant-design/icons';
 import { generateWeeklyExerciseRecommendation, ExerciseRecommendation, UserComprehensiveData as AIUserData } from '../services/deepseekAPI';
 import { getUserComprehensiveData, UserComprehensiveData } from '../services/userDataAPI';
+import { useAuth } from '../context/AuthContext';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -17,13 +18,22 @@ const WeeklyExerciseRecommendation: React.FC<WeeklyExerciseRecommendationProps> 
   const [error, setError] = useState<string | null>(null);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   const [apiCallCount, setApiCallCount] = useState(0);
+  const { isAuthenticated } = useAuth();
 
   const fetchUserData = async () => {
+    // 只有在用户已认证时才获取数据
+    if (!isAuthenticated) {
+      console.log('User not authenticated, skipping user data fetch');
+      setUserData(null);
+      setError('Please login to view recommendations');
+      return;
+    }
+
     try {
       console.log('🔄 Fetching user data...');
       const response = await getUserComprehensiveData();
       console.log('📊 User data response:', response);
-      
+
       if (response.code === 200) {
         setUserData(response.data);
         console.log('✅ User data loaded successfully:', response.data);
@@ -141,7 +151,7 @@ const WeeklyExerciseRecommendation: React.FC<WeeklyExerciseRecommendationProps> 
 
   useEffect(() => {
     fetchUserData();
-  }, []);
+  }, [isAuthenticated]);
 
   const renderTrainingSection = (title: string, data: any, icon: React.ReactNode) => (
     <Card

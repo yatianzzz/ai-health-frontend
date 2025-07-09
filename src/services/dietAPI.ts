@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { message } from 'antd';
 
 const API_BASE_URL = 'http://localhost:8080/api';
 
@@ -44,20 +43,40 @@ export interface EmptyData {
   // Empty object for DELETE responses
 }
 
+// ===================== Dietary Stats Interfaces =====================
+
+export interface FoodCategoryData {
+  type: string;
+  value: number;
+}
+
+export interface CalorieComparisonData {
+  date: string;
+  value: number;
+  category: 'Consumed' | 'Burned';
+}
+
+export interface DailySummaryData {
+  caloriesConsumed: number;
+  caloriesBurned: number;
+  netCalories: number;
+  trend: 'up' | 'down';
+}
+
 // ===================== Dietary Records =====================
 
 export const getDietaryRecords = async (): Promise<ApiResponse<DietaryRecord[]>> => {
   try {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Authentication token not found');
-    
+
     const response = await axios.get<ApiResponse<DietaryRecord[]>>(`${API_BASE_URL}/dietary-records`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
   } catch (error: any) {
     console.error('Error fetching dietary records:', error);
-    message.error('Failed to load dietary records');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -66,14 +85,14 @@ export const getDietaryRecordById = async (id: string | number): Promise<ApiResp
   try {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Authentication token not found');
-    
+
     const response = await axios.get<ApiResponse<DietaryRecord>>(`${API_BASE_URL}/dietary-records/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
     return response.data;
   } catch (error: any) {
     console.error('Error fetching dietary record:', error);
-    message.error('Failed to load dietary record');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -115,7 +134,7 @@ export const updateDietaryRecord = async (id: string | number, data: Omit<Dietar
     return response.data;
   } catch (error: any) {
     console.error('Error updating dietary record:', error);
-    message.error('Failed to update dietary record');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -131,7 +150,7 @@ export const deleteDietaryRecord = async (id: string | number): Promise<ApiRespo
     return response.data;
   } catch (error: any) {
     console.error('Error deleting dietary record:', error);
-    message.error('Failed to delete dietary record');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -150,7 +169,7 @@ export const getFoodItems = async (recordId: number): Promise<ApiResponse<FoodIt
     return response.data;
   } catch (error: any) {
     console.error('Error fetching food items:', error);
-    message.error('Failed to load food items');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -166,7 +185,7 @@ export const getFoodItemById = async (id: string | number): Promise<ApiResponse<
     return response.data;
   } catch (error: any) {
     console.error('Error fetching food item:', error);
-    message.error('Failed to load food item');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -185,7 +204,7 @@ export const createFoodItem = async (data: Omit<FoodItem, 'id' | 'createTime'>):
     return response.data;
   } catch (error: any) {
     console.error('Error creating food item:', error);
-    message.error('Failed to create food item');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -204,7 +223,7 @@ export const updateFoodItem = async (id: string | number, data: Omit<FoodItem, '
     return response.data;
   } catch (error: any) {
     console.error('Error updating food item:', error);
-    message.error('Failed to update food item');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -220,7 +239,7 @@ export const deleteFoodItem = async (id: string | number): Promise<ApiResponse<E
     return response.data;
   } catch (error: any) {
     console.error('Error deleting food item:', error);
-    message.error('Failed to delete food item');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -243,7 +262,7 @@ export const getCalorieComparisonData = async (userId: string, period: 'day' | '
     return response.data;
   } catch (error: any) {
     console.error('Error fetching calorie comparison data:', error);
-    message.error('Failed to load calorie data');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
 };
@@ -254,17 +273,64 @@ export const getDietarySuggestions = async (userId: string) => {
     if (!token) {
       throw new Error('Authentication token not found');
     }
-    
+
     const response = await axios.get(`${API_BASE_URL}/diet/suggestions/${userId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
     });
-    
+
     return response.data;
   } catch (error: any) {
     console.error('Error fetching dietary suggestions:', error);
-    message.error('Failed to load dietary suggestions');
+    // 静默处理错误，不显示错误消息，因为后端可能没有运行
     throw error;
   }
-}; 
+};
+
+// ===================== Dietary Stats APIs =====================
+
+export const getFoodCategoriesData = async (): Promise<ApiResponse<FoodCategoryData[]>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+
+    const response = await axios.get<ApiResponse<FoodCategoryData[]>>(`${API_BASE_URL}/dietary-stats/food-categories`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching food categories data:', error);
+    throw error;
+  }
+};
+
+export const getCalorieComparisonChartData = async (): Promise<ApiResponse<CalorieComparisonData[]>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+
+    const response = await axios.get<ApiResponse<CalorieComparisonData[]>>(`${API_BASE_URL}/dietary-stats/calorie-comparison`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching calorie comparison data:', error);
+    throw error;
+  }
+};
+
+export const getDailySummaryData = async (): Promise<ApiResponse<DailySummaryData>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+
+    const response = await axios.get<ApiResponse<DailySummaryData>>(`${API_BASE_URL}/dietary-stats/daily-summary`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching daily summary data:', error);
+    throw error;
+  }
+};

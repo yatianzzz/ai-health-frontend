@@ -5,6 +5,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   token: string | null;
   username: string | null;
+  isInitialized: boolean;
   login: (token: string, username: string) => void;
   logout: () => void;
   checkAuth: () => boolean;
@@ -14,6 +15,7 @@ const defaultContext: AuthContextType = {
   isAuthenticated: false,
   token: null,
   username: null,
+  isInitialized: false,
   login: () => {},
   logout: () => {},
   checkAuth: () => false
@@ -31,17 +33,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [token, setToken] = useState<string | null>(null);
   const [username, setUsername] = useState<string | null>(null);
-  
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
   // 检查本地存储中是否有token
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUsername = localStorage.getItem('username');
-    
+
     if (storedToken) {
       setToken(storedToken);
       setUsername(storedUsername);
       setIsAuthenticated(true);
     }
+
+    // Mark initialization as complete
+    setIsInitialized(true);
   }, []);
   
   // 登录方法
@@ -79,6 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated,
         token,
         username,
+        isInitialized,
         login,
         logout,
         checkAuth

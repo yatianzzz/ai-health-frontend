@@ -2,8 +2,6 @@ import React from 'react';
 import { Card, Tabs } from 'antd';
 import { Column, Pie, DualAxes } from '@ant-design/plots';
 
-const { TabPane } = Tabs;
-
 interface CalorieData {
   date: string;
   intake: number;
@@ -139,8 +137,6 @@ const CalorieComparisonChart: React.FC = () => {
       position: 'bottom',
     },
     label: {
-      type: 'inner',
-      offset: '-30%',
       content: ({ percent }: { percent: number }) => `${(percent * 100).toFixed(0)}%`,
       style: {
         fontSize: 14,
@@ -191,28 +187,47 @@ const CalorieComparisonChart: React.FC = () => {
 
   return (
     <Card title="Calorie Intake vs. Burned Comparison" style={{ marginBottom: 24 }}>
-      <Tabs defaultActiveKey="daily">
-        <TabPane tab="Daily Comparison" key="daily">
-          <div style={{ height: 400 }}>
-            <DualAxes {...dailyConfig} />
-          </div>
-        </TabPane>
-        <TabPane tab="Calorie Balance" key="balance">
-          <div style={{ height: 400 }}>
-            <Column {...balanceConfig} />
-          </div>
-        </TabPane>
-        <TabPane tab="Weekly Summary" key="weekly">
-          <div style={{ height: 400 }}>
-            <Pie {...weeklyConfig} />
-          </div>
-        </TabPane>
-        <TabPane tab="Nutrient Distribution" key="nutrients">
-          <div style={{ height: 400 }}>
-            <Column {...nutrientConfig} />
-          </div>
-        </TabPane>
-      </Tabs>
+      <Tabs
+        defaultActiveKey="daily"
+        items={[
+          {
+            key: "daily",
+            label: "Daily Comparison",
+            children: (
+              <div style={{ height: 400 }}>
+                <DualAxes {...dailyConfig} />
+              </div>
+            )
+          },
+          {
+            key: "balance",
+            label: "Calorie Balance",
+            children: (
+              <div style={{ height: 400 }}>
+                <Column {...balanceConfig} />
+              </div>
+            )
+          },
+          {
+            key: "weekly",
+            label: "Weekly Summary",
+            children: (
+              <div style={{ height: 400 }}>
+                <Pie {...weeklyConfig} />
+              </div>
+            )
+          },
+          {
+            key: "nutrients",
+            label: "Nutrient Distribution",
+            children: (
+              <div style={{ height: 400 }}>
+                <Column {...nutrientConfig} />
+              </div>
+            )
+          }
+        ]}
+      />
     </Card>
   );
 };

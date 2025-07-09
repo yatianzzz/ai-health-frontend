@@ -8,16 +8,18 @@ import UserProfileForm from '../components/UserProfileForm';
 const { Title, Text } = Typography;
 
 const UserProfile: React.FC = () => {
-  const { userProfile, updateUserProfile, hasShownForm, setHasShownForm, isLoading } = useUser();
+  const { userProfile, updateUserProfile, hasShownForm, setHasShownForm, isLoading, refreshProfile } = useUser();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Only show the form if we haven't shown it before and there's no profile
+  // Refresh profile when component mounts to ensure latest data
   useEffect(() => {
-    if (!isLoading && !hasShownForm && !userProfile) {
-      setEditModalVisible(true);
-    }
-  }, [hasShownForm, userProfile, isLoading]);
+    refreshProfile();
+  }, [refreshProfile]);
+
+
+
+  // Remove automatic form display - only show when user clicks button
 
   const handleProfileUpdate = async (updatedProfile: any) => {
     try {
@@ -47,19 +49,27 @@ const UserProfile: React.FC = () => {
 
   if (!userProfile) {
     return (
-      <Card>
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Avatar size={80} icon={<UserOutlined />} />
-          <p style={{ marginTop: 20 }}>Profile information is incomplete</p>
-          <Button 
-            type="primary" 
-            onClick={() => setEditModalVisible(true)}
-            loading={isSubmitting}
-          >
-            Complete Profile
-          </Button>
-        </div>
-      </Card>
+      <div>
+        <Card>
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Avatar size={80} icon={<UserOutlined />} />
+            <p style={{ marginTop: 20 }}>Profile information is incomplete</p>
+            <Button
+              type="primary"
+              onClick={() => setEditModalVisible(true)}
+              loading={isSubmitting}
+            >
+              Complete Profile
+            </Button>
+          </div>
+        </Card>
+
+        <UserProfileForm
+          visible={editModalVisible}
+          onClose={() => setEditModalVisible(false)}
+          onSubmit={handleProfileUpdate}
+        />
+      </div>
     );
   }
 

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Avatar, Card, Row, Col, Button, Statistic, Progress, Divider } from 'antd';
-import { UserOutlined, AppleOutlined, FireOutlined, SmileOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { UserOutlined, AppleOutlined, FireOutlined, SmileOutlined, ClockCircleOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
@@ -8,6 +8,9 @@ import { useExercise } from '../context/ExerciseContext';
 import UserProfileForm from '../components/UserProfileForm';
 import HealthArticles from '../components/HealthArticles';
 import ExerciseCompactList from '../components/ExerciseCompactList';
+import { useMentalHealth } from '../context/MentalHealthContext';
+import { useDiet } from '../context/DietContext';
+import { getDailySummaryData, DailySummaryData } from '../services/dietAPI';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -21,17 +24,30 @@ const Home: React.FC = () => {
     durationCompletion,
     refreshExerciseData
   } = useExercise();
+  const { mentalHealthData } = useMentalHealth();
+  const { dietaryRecords, foodItems } = useDiet();
   const [showProfileForm, setShowProfileForm] = React.useState(false);
+  const [dailySummary, setDailySummary] = React.useState<DailySummaryData | null>(null);
 
   useEffect(() => {
-   
-    if (!isProfileComplete && !localStorage.getItem('profileComplete')) {
-      setShowProfileForm(true);
-    }
-
     // Refresh exercise data when component mounts
     refreshExerciseData();
-  }, [isProfileComplete, refreshExerciseData]);
+  }, [refreshExerciseData]);
+
+  // Fetch dietary summary data
+  useEffect(() => {
+    const fetchDailySummary = async () => {
+      try {
+        const response = await getDailySummaryData();
+        if (response.code === 200) {
+          setDailySummary(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching daily summary:', error);
+      }
+    };
+    fetchDailySummary();
+  }, [dietaryRecords, foodItems]);
 
   const goToExercisePage = () => {
     navigate('/dashboard/exercise');
@@ -111,17 +127,36 @@ const Home: React.FC = () => {
             <Row gutter={[16, 16]}>
               <Col span={8}>
                 <Card title="Daily Calorie Intake" style={{ textAlign: 'center' }}>
-                  <Statistic value={2100} suffix="kcal" valueStyle={{ color: '#1890ff' }} />
+                  <Statistic
+                    value={dailySummary?.caloriesConsumed || 0}
+                    suffix="kcal"
+                    valueStyle={{ color: '#1890ff' }}
+                  />
                 </Card>
               </Col>
               <Col span={8}>
-                <Card title="Protein Ratio" style={{ textAlign: 'center' }}>
-                  <Statistic value={25} suffix="%" valueStyle={{ color: '#52c41a' }} />
+                <Card title="Calories Burned" style={{ textAlign: 'center' }}>
+                  <Statistic
+                    value={dailySummary?.caloriesBurned || 0}
+                    suffix="kcal"
+                    valueStyle={{ color: '#52c41a' }}
+                  />
                 </Card>
               </Col>
               <Col span={8}>
-                <Card title="Nutrition Balance" style={{ textAlign: 'center' }}>
-                  <Statistic value={85} suffix="/100" valueStyle={{ color: '#fa8c16' }} />
+                <Card title="Net Calories" style={{ textAlign: 'center' }}>
+                  <Statistic
+                    value={Math.abs(dailySummary?.netCalories || 0)}
+                    suffix="kcal"
+                    valueStyle={{
+                      color: (dailySummary?.netCalories || 0) >= 0 ? '#fa8c16' : '#52c41a'
+                    }}
+                    prefix={
+                      (dailySummary?.netCalories || 0) >= 0 ?
+                        <ArrowUpOutlined style={{ color: '#fa8c16' }} /> :
+                        <ArrowDownOutlined style={{ color: '#52c41a' }} />
+                    }
+                  />
                 </Card>
               </Col>
             </Row>
@@ -245,22 +280,46 @@ const Home: React.FC = () => {
             <p>Through fine-tuned LLM and an immersive 3D interactive interface, the system provides immediate emotional support and mental health advice.</p>
             <Row gutter={[16, 16]}>
               <Col span={8}>
-                <Card size="small" title="Emotional State" style={{ textAlign: 'center' }}>
-                  <Statistic value="Stable" valueStyle={{ color: '#52c41a', fontSize: '16px' }} />
+                <Card size="small" title="Comprehensive Evaluation" style={{ textAlign: 'center' }}>
+                  <Statistic
+                    value={mentalHealthData.comprehensiveEvaluation}
+                    valueStyle={{
+                      color: mentalHealthData.comprehensiveEvaluation === 'Stable' ? '#52c41a' :
+                             mentalHealthData.comprehensiveEvaluation === 'Unstable' ? '#f5222d' : '#666',
+                      fontSize: '16px'
+                    }}
+                  />
                 </Card>
               </Col>
               <Col span={8}>
                 <Card size="small" title="Stress Index" style={{ textAlign: 'center' }}>
-                  <Statistic value={35} suffix="/100" valueStyle={{ color: '#1890ff', fontSize: '16px' }} />
+                  <Statistic
+                    value={mentalHealthData.stressIndex}
+                    suffix={mentalHealthData.stressIndex !== '--' ? '/100' : ''}
+                    valueStyle={{ color: '#1890ff', fontSize: '16px' }}
+                  />
                 </Card>
               </Col>
               <Col span={8}>
                 <Card size="small" title="Today's Mood" style={{ textAlign: 'center' }}>
-                  <Statistic value="Good" valueStyle={{ color: '#fa8c16', fontSize: '16px' }} />
+                  <Statistic
+                    value={mentalHealthData.todaysMood}
+                    valueStyle={{
+                      color: mentalHealthData.todaysMood === 'Very good' ? '#52c41a' :
+                             mentalHealthData.todaysMood === 'Good' ? '#1890ff' :
+                             mentalHealthData.todaysMood === 'Sad' ? '#fa8c16' :
+                             mentalHealthData.todaysMood === 'Depressed' ? '#f5222d' : '#666',
+                      fontSize: '16px'
+                    }}
+                  />
                 </Card>
               </Col>
             </Row>
-            <Button type="primary" style={{ marginTop: 16, width: '100%' }}>
+            <Button
+              type="primary"
+              style={{ marginTop: 16, width: '100%' }}
+              onClick={() => navigate('/dashboard/mental-health')}
+            >
               Start Mental Health Consultation
             </Button>
           </Card>

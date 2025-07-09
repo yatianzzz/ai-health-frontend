@@ -4,6 +4,7 @@ import { FireOutlined, ClockCircleOutlined, HeartOutlined } from '@ant-design/ic
 import { getWeeklySummary, UserActivity } from '../services/exerciseAPI';
 import { Column } from '@ant-design/charts';
 import { useExercise } from '../context/ExerciseContext';
+import { useAuth } from '../context/AuthContext';
 
 const { Title, Text } = Typography;
 
@@ -12,19 +13,30 @@ const WeeklyExerciseSummary: React.FC = () => {
   const [recordsByDay, setRecordsByDay] = useState<{[key: string]: UserActivity[]}>({});
   const [recordCount, setRecordCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
-  
-  const { 
-    totalSteps, 
-    totalCalories, 
-    totalDuration, 
-    stepsCompletion, 
-    caloriesCompletion, 
+  const { isAuthenticated } = useAuth();
+
+  const {
+    totalSteps,
+    totalCalories,
+    totalDuration,
+    stepsCompletion,
+    caloriesCompletion,
     durationCompletion,
     isLoading,
     refreshExerciseData
   } = useExercise();
 
   const fetchDetailedSummary = useCallback(async () => {
+    // 只有在用户已认证时才获取数据
+    if (!isAuthenticated) {
+      console.log('User not authenticated, skipping detailed summary fetch');
+      setWeeklyRecords([]);
+      setRecordsByDay({});
+      setRecordCount(0);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await getWeeklySummary();
@@ -43,7 +55,7 @@ const WeeklyExerciseSummary: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // 在组件挂载和数据更新时刷新
   useEffect(() => {

@@ -8,8 +8,6 @@ import UserProfileForm, { UserProfileData } from '../components/UserProfileForm'
 import { saveUserProfile } from '../services/userAPI';
 import { useAuth } from '../context/AuthContext';
 
-const { TabPane } = Tabs;
-
 const Login: React.FC = () => {
   const [activeTab, setActiveTab] = useState('login');
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -122,76 +120,88 @@ const Login: React.FC = () => {
           <h1 style={{ color: 'var(--primary-color)', marginLeft: 10, fontSize: 24 }}>Health Management System</h1>
         </div>
         
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="Login" key="login">
-            <Form
-              name="login_form"
-              initialValues={{ remember: true }}
-              onFinish={onFinishLogin}
-            >
-              <Form.Item
-                name="username"
-                rules={[{ required: true, message: 'Please enter your username!' }]}
-              >
-                <Input prefix={<UserOutlined />} placeholder="Username" />
-              </Form.Item>
-              <Form.Item
-                name="password"
-                rules={[{ required: true, message: 'Please enter your password!' }]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-              </Form.Item>
-              <Form.Item>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  style={{ width: '100%' }}
-                  loading={isLoading}
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={[
+            {
+              key: "login",
+              label: "Login",
+              children: (
+                <Form
+                  name="login_form"
+                  initialValues={{ remember: true }}
+                  onFinish={onFinishLogin}
                 >
-                  Login
-                </Button>
-              </Form.Item>
-            </Form>
-          </TabPane>
-          <TabPane tab="Register" key="register">
-            <Form
-              name="register_form"
-              onFinish={onFinishRegister}
-            >
-              <Form.Item
-                name="username"
-                rules={[{ required: true, message: 'Please enter your username!' }]}
-              >
-                <Input prefix={<UserOutlined />} placeholder="Username" />
-              </Form.Item>
-              <Form.Item
-                name="email"
-                rules={[
-                  { required: true, message: 'Please enter your email!' },
-                  { type: 'email', message: 'Please enter a valid email address!' }
-                ]}
-              >
-                <Input prefix={<MailOutlined />} placeholder="Email" />
-              </Form.Item>
-              <Form.Item
-                name="password"
-                rules={[{ required: true, message: 'Please enter your password!' }]}
-              >
-                <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-              </Form.Item>
-              <Form.Item>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  style={{ width: '100%' }}
-                  loading={isLoading}
+                  <Form.Item
+                    name="username"
+                    rules={[{ required: true, message: 'Please enter your username!' }]}
+                  >
+                    <Input prefix={<UserOutlined />} placeholder="Username" />
+                  </Form.Item>
+                  <Form.Item
+                    name="password"
+                    rules={[{ required: true, message: 'Please enter your password!' }]}
+                  >
+                    <Input.Password prefix={<LockOutlined />} placeholder="Password" />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      style={{ width: '100%' }}
+                      loading={isLoading}
+                    >
+                      Login
+                    </Button>
+                  </Form.Item>
+                </Form>
+              )
+            },
+            {
+              key: "register",
+              label: "Register",
+              children: (
+                <Form
+                  name="register_form"
+                  onFinish={onFinishRegister}
                 >
-                  Register
-                </Button>
-              </Form.Item>
-            </Form>
-          </TabPane>
-        </Tabs>
+                  <Form.Item
+                    name="username"
+                    rules={[{ required: true, message: 'Please enter your username!' }]}
+                  >
+                    <Input prefix={<UserOutlined />} placeholder="Username" />
+                  </Form.Item>
+                  <Form.Item
+                    name="email"
+                    rules={[
+                      { required: true, message: 'Please enter your email!' },
+                      { type: 'email', message: 'Please enter a valid email address!' }
+                    ]}
+                  >
+                    <Input prefix={<MailOutlined />} placeholder="Email" />
+                  </Form.Item>
+                  <Form.Item
+                    name="password"
+                    rules={[{ required: true, message: 'Please enter your password!' }]}
+                  >
+                    <Input.Password prefix={<LockOutlined />} placeholder="Password" />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button
+                      type="primary"
+                      htmlType="submit"
+                      style={{ width: '100%' }}
+                      loading={isLoading}
+                    >
+                      Register
+                    </Button>
+                  </Form.Item>
+                </Form>
+              )
+            }
+          ]}
+        />
       </Card>
 
       <UserProfileForm 

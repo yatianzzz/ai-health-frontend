@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { getWeeklySummary } from '../services/exerciseAPI';
+import { useAuth } from './AuthContext';
 
 
 interface ExerciseContextType {
@@ -47,21 +48,28 @@ export const ExerciseProvider: React.FC<ExerciseProviderProps> = ({ children }) 
   const [caloriesCompletion, setCaloriesCompletion] = useState<number>(0);
   const [durationCompletion, setDurationCompletion] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { isAuthenticated } = useAuth();
 
   const refreshExerciseData = async () => {
+    // 只有在用户已认证时才获取数据
+    if (!isAuthenticated) {
+      console.log('User not authenticated, skipping exercise data refresh');
+      return;
+    }
+
     try {
       setIsLoading(true);
       const response = await getWeeklySummary();
-      
+
       if (response.code === 200 && response.data) {
         const { totalSteps, totalCalories, totalDuration } = response.data;
-        
-       
+
+
         setTotalSteps(totalSteps);
         setTotalCalories(totalCalories);
         setTotalDuration(totalDuration);
-        
-        
+
+
         setStepsCompletion(Math.min(100, (totalSteps / WEEKLY_STEPS_GOAL) * 100));
         setCaloriesCompletion(Math.min(100, (totalCalories / WEEKLY_CALORIES_GOAL) * 100));
         setDurationCompletion(Math.min(100, (totalDuration / WEEKLY_DURATION_GOAL) * 100));
@@ -73,10 +81,13 @@ export const ExerciseProvider: React.FC<ExerciseProviderProps> = ({ children }) 
     }
   };
 
-  
+
   useEffect(() => {
-    refreshExerciseData();
-  }, []);
+    // 只有在用户已认证时才刷新数据
+    if (isAuthenticated) {
+      refreshExerciseData();
+    }
+  }, [isAuthenticated]);
 
   return (
     <ExerciseContext.Provider

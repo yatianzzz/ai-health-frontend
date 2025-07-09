@@ -30,7 +30,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     if (path.includes('/dashboard/diet')) return '2';
     if (path.includes('/dashboard/exercise')) return '3';
     if (path.includes('/dashboard/mental-health')) return '4';
-    if (path.includes('/dashboard/settings')) return '5';
     return '1'; // Default to home
   };
   
@@ -47,9 +46,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         break;
       case '4':
         navigate('/dashboard/mental-health');
-        break;
-      case '5':
-        navigate('/dashboard/settings');
         break;
       default:
         navigate('/dashboard/home');
@@ -70,20 +66,23 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     }
   };
 
-  const userMenu = (
-    <Menu>
-      <Menu.Item key="profile" onClick={() => navigate('/dashboard/profile')}>
-        <UserOutlined /> Profile
-      </Menu.Item>
-      <Menu.Item key="settings" onClick={() => navigate('/dashboard/settings')}>
-        <SettingOutlined /> Settings
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item key="logout" onClick={handleLogout}>
-        <LogoutOutlined /> Logout
-      </Menu.Item>
-    </Menu>
-  );
+  const userMenuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />,
+      label: 'Profile',
+      onClick: () => navigate('/dashboard/profile')
+    },
+    {
+      type: 'divider' as const
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />,
+      label: 'Logout',
+      onClick: handleLogout
+    }
+  ];
   
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -158,7 +157,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             { key: '2', icon: <AppleOutlined />, label: 'Dietary Suggestions' },
             { key: '3', icon: <FireOutlined />, label: 'Exercise Guidance' },
             { key: '4', icon: <SmileOutlined />, label: 'Mental Health Support' },
-            { key: '5', icon: <SettingOutlined />, label: 'Settings' },
           ]}
         />
       </Sider>
@@ -184,7 +182,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             </div>
             
             <div className="header-right">
-              <Dropdown overlay={userMenu} trigger={['click']}>
+              <Dropdown menu={{ items: userMenuItems }} trigger={['click']}>
                 <span className="user-dropdown-link">
               <Avatar icon={<UserOutlined />} />
                   <span className="username">{username || 'User'}</span>
