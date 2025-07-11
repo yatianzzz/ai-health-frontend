@@ -114,7 +114,7 @@ export const saveExerciseData = async (data: ExerciseData): Promise<ApiResponse<
     } else if (error.response?.status === 401) {
       message.error('Session expired. Please login again.');
       localStorage.removeItem('token');
-      // window.location.href = '/login';
+      window.location.href = '/login';
     } else if (error.response?.status === 400) {
       message.error(error.response.data?.message || 'Invalid data provided');
     } else {
@@ -237,7 +237,7 @@ export const getAllExerciseRecords = async (): Promise<ApiResponse<UserActivity[
     if (response.status === 401) {
       localStorage.removeItem('token');
       message.error('Session expired. Please login again');
-      // window.location.href = '/login';
+      window.location.href = '/login';
       throw { code: 401, message: 'Authentication required', data: null };
     }
 
@@ -256,7 +256,7 @@ export const getAllExerciseRecords = async (): Promise<ApiResponse<UserActivity[
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
       message.error('Session expired. Please login again');
-      // window.location.href = '/login';
+    window.location.href = '/login';
       throw { code: 401, message: 'Authentication required', data: null };
     }
     
