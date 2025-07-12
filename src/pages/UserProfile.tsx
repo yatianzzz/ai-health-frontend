@@ -144,7 +144,7 @@ const UserProfile: React.FC = () => {
               <Statistic 
                 title="Age" 
                 value={userProfile.age} 
-                suffix="years" 
+                suffix="years old" 
                 valueStyle={{ color: '#1890ff' }}
               />
             </Card>
