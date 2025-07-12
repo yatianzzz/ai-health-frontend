@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect, Suspense } from 'react';
-import { Card, Input, Button, Typography, Space, Avatar, Spin, Row, Col } from 'antd';
+import { Card, Input, Button, Typography, Space, Avatar, Spin, Row, Col, message } from 'antd';
 import { SendOutlined, ArrowLeftOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
 import DashboardLayout from '../layouts/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import Panda3D from '../components/Panda3D';
+import { getMentalHealthChatResponse } from '../services/mentalHealthAPI';
 
 
 const { Title, Paragraph, Text } = Typography;
@@ -235,25 +236,62 @@ const MentalHealthChat: React.FC = () => {
     // 触发全局消息发送事件来隐藏说话框
     window.dispatchEvent(new CustomEvent('messageSent'));
 
-    // 模拟AI思考时间
-    setTimeout(() => {
-      setIsListening(false);
-      setIsSpeaking(true);
+    try {
+      // 构建对话历史
+      const conversationHistory = messages.map(msg => ({
+        role: msg.isUser ? 'user' as const : 'assistant' as const,
+        content: msg.text
+      }));
 
-      const aiResponse: Message = {
+      // 调用DeepSeek API
+      const response = await getMentalHealthChatResponse(inputValue, conversationHistory);
+      
+      if (response.code === 200 && response.data) {
+        setIsListening(false);
+        setIsSpeaking(true);
+
+        const aiResponse: Message = {
+          id: Date.now() + 1,
+          text: response.data.message,
+          isUser: false,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, aiResponse]);
+        setIsLoading(false);
+
+        // 模拟说话时间
+        setTimeout(() => {
+          setIsSpeaking(false);
+        }, 2000 + Math.random() * 1000);
+      } else {
+        // API调用失败，使用fallback
+        message.warning('AI服务暂时不可用，使用备用回复');
+        const fallbackResponse: Message = {
+          id: Date.now() + 1,
+          text: getAIResponse(inputValue),
+          isUser: false,
+          timestamp: new Date()
+        };
+        setMessages(prev => [...prev, fallbackResponse]);
+        setIsLoading(false);
+        setIsListening(false);
+      }
+    } catch (error) {
+      console.error('Error calling AI API:', error);
+      message.error('AI服务连接失败');
+      
+      // 使用fallback响应
+      const fallbackResponse: Message = {
         id: Date.now() + 1,
         text: getAIResponse(inputValue),
         isUser: false,
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, fallbackResponse]);
       setIsLoading(false);
-
-      // 模拟说话时间
-      setTimeout(() => {
-        setIsSpeaking(false);
-      }, 2000 + Math.random() * 1000);
-    }, 1000 + Math.random() * 2000);
+      setIsListening(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -263,27 +301,69 @@ const MentalHealthChat: React.FC = () => {
     }
   };
 
-  const handleAssistantInteract = () => {
+  const handleAssistantInteract = async () => {
     if (!isLoading && !isSpeaking) {
-      const greetings = [
-        "Hello! I'm your AI mental health assistant. I'm delighted to help you!",
-        "Welcome to our mental health conversation space. I'm here to listen to your thoughts.",
-        "Hi there! How are you feeling today? We can talk about anything that's on your mind.",
-        "Nice to meet you! I'm an AI assistant specially designed for mental health support.",
-        "*waves wing* Hello friend! I'm here whenever you need someone to talk to."
-      ];
-
-      const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-
-      const greetingMessage: Message = {
-        id: Date.now(),
-        text: randomGreeting,
-        isUser: false,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, greetingMessage]);
       setIsSpeaking(true);
+
+      try {
+        // 调用DeepSeek API获取问候语
+        const response = await getMentalHealthChatResponse(
+          "Hello, I'd like to start a conversation",
+          []
+        );
+        
+        if (response.code === 200 && response.data) {
+          const greetingMessage: Message = {
+            id: Date.now(),
+            text: response.data.message,
+            isUser: false,
+            timestamp: new Date()
+          };
+
+          setMessages(prev => [...prev, greetingMessage]);
+        } else {
+          // 使用fallback问候语
+          const greetings = [
+            "Hello! I'm your AI mental health assistant. I'm delighted to help you!",
+            "Welcome to our mental health conversation space. I'm here to listen to your thoughts.",
+            "Hi there! How are you feeling today? We can talk about anything that's on your mind.",
+            "Nice to meet you! I'm an AI assistant specially designed for mental health support.",
+            "*waves wing* Hello friend! I'm here whenever you need someone to talk to."
+          ];
+
+          const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+          const greetingMessage: Message = {
+            id: Date.now(),
+            text: randomGreeting,
+            isUser: false,
+            timestamp: new Date()
+          };
+
+          setMessages(prev => [...prev, greetingMessage]);
+        }
+      } catch (error) {
+        console.error('Error getting greeting from AI:', error);
+        // 使用fallback问候语
+        const greetings = [
+          "Hello! I'm your AI mental health assistant. I'm delighted to help you!",
+          "Welcome to our mental health conversation space. I'm here to listen to your thoughts.",
+          "Hi there! How are you feeling today? We can talk about anything that's on your mind.",
+          "Nice to meet you! I'm an AI assistant specially designed for mental health support.",
+          "*waves wing* Hello friend! I'm here whenever you need someone to talk to."
+        ];
+
+        const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+
+        const greetingMessage: Message = {
+          id: Date.now(),
+          text: randomGreeting,
+          isUser: false,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, greetingMessage]);
+      }
 
       setTimeout(() => {
         setIsSpeaking(false);
