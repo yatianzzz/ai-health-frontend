@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+const API_BASE_URL = 'http://localhost:8080/api';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_API_KEY = process.env.REACT_APP_DEEPSEEK_API_KEY || 'sk-1555560e750b4bcb806c65171aa78f7e';
 
@@ -417,4 +418,80 @@ const getFallbackAdvice = (assessmentDetails: any[]): MentalHealthAdvice => {
       'Learn to say "no" and set healthy boundaries'
     ]
   };
+}; 
+
+// User Mood Record Types
+export interface UserMoodRecord {
+  id: number;
+  userId: number;
+  totalEvaluation: 'Stable' | 'Unstable';
+  stressValue: number;
+  todaysMood: 'Very good' | 'Good' | 'Sad' | 'Depressed';
+  recordTime: string;
+}
+
+// Get all user mood records
+export const getUserMoods = async (): Promise<ApiResponse<UserMoodRecord[]>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.get<ApiResponse<UserMoodRecord[]>>(`${API_BASE_URL}/user-moods`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching user moods:', error);
+    throw error;
+  }
+};
+
+// Create a new user mood record
+export const createUserMood = async (data: { totalEvaluation: 'Stable' | 'Unstable'; stressValue: number }): Promise<ApiResponse<UserMoodRecord>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.post<ApiResponse<UserMoodRecord>>(`${API_BASE_URL}/user-moods`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error creating user mood:', error);
+    throw error;
+  }
+};
+
+// Update an existing user mood record
+export const updateUserMood = async (id: number, data: { totalEvaluation: 'Stable' | 'Unstable'; stressValue: number }): Promise<ApiResponse<UserMoodRecord>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.put<ApiResponse<UserMoodRecord>>(`${API_BASE_URL}/user-moods/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating user mood:', error);
+    throw error;
+  }
+}; 
+
+// 获取单条心情记录
+export const getUserMoodById = async (id: number | string): Promise<ApiResponse<UserMoodRecord>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.get<ApiResponse<UserMoodRecord>>(`${API_BASE_URL}/user-moods/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching user mood by id:', error);
+    throw error;
+  }
 }; 
