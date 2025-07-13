@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+const API_BASE_URL = 'http://localhost:8080/api';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_API_KEY = process.env.REACT_APP_DEEPSEEK_API_KEY || 'sk-1555560e750b4bcb806c65171aa78f7e';
 
@@ -208,6 +209,170 @@ Important notes:
   }
 };
 
+export interface ChatResponse {
+  message: string;
+  mood: 'positive' | 'neutral' | 'concerned' | 'supportive';
+  suggestions?: string[];
+}
+
+export const getMentalHealthChatResponse = async (
+  userMessage: string,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
+): Promise<ApiResponse<ChatResponse>> => {
+  console.log('💬 Getting mental health chat response for:', userMessage);
+
+  try {
+    const systemPrompt = `You are Nikky, a friendly and empathetic AI mental health assistant. You are represented by a cute chick character and should respond in a warm, supportive manner.
+
+Your role is to:
+1. Listen empathetically to users' mental health concerns
+2. Provide supportive and helpful responses
+3. Offer gentle suggestions when appropriate
+4. Maintain a positive, encouraging tone
+5. Never give medical advice - encourage professional help when needed
+
+Respond naturally as if you're having a friendly conversation. Keep responses conversational and not too long.`;
+
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...conversationHistory,
+      { role: 'user' as const, content: userMessage }
+    ];
+
+    console.log('📤 Sending chat request to DeepSeek API...');
+
+    const response = await axios.post(
+      DEEPSEEK_API_URL,
+      {
+        model: 'deepseek-chat',
+        messages,
+        temperature: 0.7,
+        max_tokens: 500,
+        stream: false
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('📥 Received chat response from DeepSeek API:', response.status);
+
+    const content = response.data.choices[0].message.content;
+    console.log('💬 AI Response:', content);
+
+    // Analyze the response to determine mood
+    const mood = analyzeResponseMood(content);
+
+    const chatResponse: ChatResponse = {
+      message: content,
+      mood,
+      suggestions: mood === 'concerned' ? [
+        'Consider talking to a mental health professional',
+        'Try some relaxation techniques',
+        'Reach out to friends or family for support'
+      ] : undefined
+    };
+
+    return {
+      code: 200,
+      data: chatResponse,
+      message: 'Chat response generated successfully'
+    };
+
+  } catch (error) {
+    console.error('❌ Error calling DeepSeek API for chat:', error);
+
+    if (axios.isAxiosError(error)) {
+      console.error('📡 API Error details:', error.response?.data);
+      console.error('📡 API Error status:', error.response?.status);
+
+      if (error.response?.status === 401) {
+        return {
+          code: 401,
+          data: {
+            message: 'API authentication failed. Please check your API key.',
+            mood: 'neutral'
+          },
+          message: 'API authentication failed. Please check your API key.'
+        };
+      }
+
+      if (error.response?.status === 429) {
+        return {
+          code: 429,
+          data: {
+            message: 'API rate limit exceeded. Please try again later.',
+            mood: 'neutral'
+          },
+          message: 'API rate limit exceeded. Please try again later.'
+        };
+      }
+    }
+
+    console.log('🔄 Using fallback chat response due to API error');
+
+    // Return a fallback response
+    const fallbackResponse: ChatResponse = {
+      message: getFallbackChatResponse(userMessage),
+      mood: 'supportive'
+    };
+
+    return {
+      code: 200,
+      data: fallbackResponse,
+      message: 'Using fallback response due to API error'
+    };
+  }
+};
+
+const analyzeResponseMood = (content: string): 'positive' | 'neutral' | 'concerned' | 'supportive' => {
+  const lowerContent = content.toLowerCase();
+
+  if (lowerContent.includes('worry') || lowerContent.includes('concern') || lowerContent.includes('serious')) {
+    return 'concerned';
+  }
+
+  if (lowerContent.includes('great') || lowerContent.includes('wonderful') || lowerContent.includes('excellent')) {
+    return 'positive';
+  }
+
+  if (lowerContent.includes('support') || lowerContent.includes('help') || lowerContent.includes('listen')) {
+    return 'supportive';
+  }
+
+  return 'neutral';
+};
+
+const getFallbackChatResponse = (userMessage: string): string => {
+  const responses = [
+    'I understand how you\'re feeling. Can you tell me more about this situation?',
+    'That sounds really challenging. How have you handled similar situations before?',
+    'Your feelings are completely understandable. Let\'s explore some coping strategies together.',
+    'Thank you for sharing this with me. When do you feel this emotion most strongly?',
+    'I hear your concerns. Do you have any support systems you can rely on?',
+    'That\'s a great observation. What do you think might help improve this situation?'
+  ];
+
+  // Provide more specific responses based on keywords
+  if (userMessage.toLowerCase().includes('stress') || userMessage.toLowerCase().includes('pressure') || userMessage.toLowerCase().includes('overwhelmed')) {
+    return 'Stress is a very common experience in life. Let\'s try some deep breathing exercises or discuss some stress-relief methods. What are some ways you usually relax?';
+  }
+  if (userMessage.toLowerCase().includes('anxiety') || userMessage.toLowerCase().includes('anxious') || userMessage.toLowerCase().includes('worry')) {
+    return 'Anxiety can be really uncomfortable. Remember, most things we worry about don\'t actually happen. Let\'s focus on the present moment - what are some things you can control right now?';
+  }
+  if (userMessage.toLowerCase().includes('sad') || userMessage.toLowerCase().includes('depressed') || userMessage.toLowerCase().includes('down')) {
+    return 'I can sense your sadness. It\'s important to allow yourself to feel these emotions. Would you like to tell me what\'s making you feel sad?';
+  }
+  if (userMessage.toLowerCase().includes('happy') || userMessage.toLowerCase().includes('good') || userMessage.toLowerCase().includes('great')) {
+    return 'I\'m so glad to hear you\'re feeling positive! What\'s been contributing to these good feelings? It\'s wonderful to celebrate these moments.';
+  }
+
+  return responses[Math.floor(Math.random() * responses.length)];
+};
+
 const getFallbackAdvice = (assessmentDetails: any[]): MentalHealthAdvice => {
   console.log('🔄 Generating fallback advice...');
   
@@ -253,4 +418,80 @@ const getFallbackAdvice = (assessmentDetails: any[]): MentalHealthAdvice => {
       'Learn to say "no" and set healthy boundaries'
     ]
   };
-}; 
+};
+
+// User Mood Record Types
+export interface UserMoodRecord {
+  id: number;
+  userId: number;
+  totalEvaluation: 'Stable' | 'Unstable';
+  stressValue: number;
+  todaysMood: 'Very good' | 'Good' | 'Sad' | 'Depressed';
+  recordTime: string;
+}
+
+// Get all user mood records
+export const getUserMoods = async (): Promise<ApiResponse<UserMoodRecord[]>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.get<ApiResponse<UserMoodRecord[]>>(`${API_BASE_URL}/user-moods`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching user moods:', error);
+    throw error;
+  }
+};
+
+// Create a new user mood record
+export const createUserMood = async (data: { totalEvaluation: 'Stable' | 'Unstable'; stressValue: number }): Promise<ApiResponse<UserMoodRecord>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.post<ApiResponse<UserMoodRecord>>(`${API_BASE_URL}/user-moods`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error creating user mood:', error);
+    throw error;
+  }
+};
+
+// Update an existing user mood record
+export const updateUserMood = async (id: number, data: { totalEvaluation: 'Stable' | 'Unstable'; stressValue: number }): Promise<ApiResponse<UserMoodRecord>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.put<ApiResponse<UserMoodRecord>>(`${API_BASE_URL}/user-moods/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating user mood:', error);
+    throw error;
+  }
+};
+
+// 获取单条心情记录
+export const getUserMoodById = async (id: number | string): Promise<ApiResponse<UserMoodRecord>> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error('Authentication token not found');
+    const response = await axios.get<ApiResponse<UserMoodRecord>>(`${API_BASE_URL}/user-moods/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error fetching user mood by id:', error);
+    throw error;
+  }
+};

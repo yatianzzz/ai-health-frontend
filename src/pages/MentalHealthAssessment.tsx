@@ -5,7 +5,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import { useNavigate, useParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMentalHealth } from '../context/MentalHealthContext';
-import { generateMentalHealthAdvice, AssessmentResult, MentalHealthAdvice } from '../services/mentalHealthAPI';
+import { generateMentalHealthAdvice, AssessmentResult, MentalHealthAdvice, getUserMoods, createUserMood, updateUserMood } from '../services/mentalHealthAPI';
 import MentalHealthAdviceModal from '../components/MentalHealthAdviceModal';
 
 const { Title, Paragraph, Text } = Typography;
@@ -823,7 +823,7 @@ const MentalHealthAssessment: React.FC = () => {
     }));
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentAssessment && currentQuestion < currentAssessment.questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
@@ -833,18 +833,44 @@ const MentalHealthAssessment: React.FC = () => {
       setIsCompleted(true);
 
       // Update context based on assessment type
+      let totalEvaluation: 'Stable' | 'Unstable' | undefined = undefined;
+      let stressValue: number | undefined = undefined;
       if (currentCategory === 'mental') {
         // Mental Health Assessment: 30 questions, max score 90, threshold at 45
         const result = totalScore <= 45 ? 'Stable' : 'Unstable';
         updateComprehensiveEvaluation(result);
+        totalEvaluation = result;
       } else if (currentCategory === 'stress') {
         // Stress Assessment: 20 questions, each worth 5 points, total 100
         const stressScore = Math.round((totalScore / 80) * 100); // Convert to 0-100 scale
         updateStressIndex(stressScore);
-      } else if (currentCategory === 'anxiety') {
-        // Anxiety Assessment: 20 questions, max score 60, results stored separately
-        // For now, we'll just complete the assessment without updating context
-        // You can add anxiety-specific context updates here if needed
+        stressValue = stressScore;
+      }
+
+      // 新增/更新心情记录（仅 mental 或 stress 测评时）
+      if (currentCategory === 'mental' || currentCategory === 'stress') {
+        try {
+          const moodsRes = await getUserMoods();
+          const today = new Date().toISOString().slice(0, 10);
+          const todayMood = moodsRes.data.find(m => m.recordTime.startsWith(today));
+          // 只 mental 测评时写 totalEvaluation，stress 测评时写 stressValue
+          const payload: any = {};
+          if (totalEvaluation) payload.totalEvaluation = totalEvaluation;
+          if (typeof stressValue === 'number') payload.stressValue = stressValue;
+          if (todayMood) {
+            await updateUserMood(todayMood.id, {
+              totalEvaluation: payload.totalEvaluation ?? todayMood.totalEvaluation,
+              stressValue: typeof payload.stressValue === 'number' ? payload.stressValue : todayMood.stressValue
+            });
+          } else if (payload.totalEvaluation || typeof payload.stressValue === 'number') {
+            await createUserMood({
+              totalEvaluation: payload.totalEvaluation ?? 'Stable',
+              stressValue: typeof payload.stressValue === 'number' ? payload.stressValue : 0
+            });
+          }
+        } catch (err: any) {
+          message.error('Failed to save mood record: ' + (err.message || 'Unknown error'));
+        }
       }
 
       // Save completed assessment result

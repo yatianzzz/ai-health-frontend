@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, Row, Col, Statistic, Progress, List, Tag, Typography, Empty } from 'antd';
 import { FireOutlined, ClockCircleOutlined, HeartOutlined } from '@ant-design/icons';
 import { getWeeklySummary, UserActivity } from '../services/exerciseAPI';
-import { Column } from '@ant-design/charts';
+import { Column } from '@ant-design/plots';
 import { useExercise } from '../context/ExerciseContext';
 import { useAuth } from '../context/AuthContext';
 

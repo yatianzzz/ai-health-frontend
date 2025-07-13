@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@ant-design/charts": "^2.2.7",
     "@ant-design/icons": "^6.0.0",
+    "@ant-design/plots": "^2.6.0",
     "@chakra-ui/modal": "^2.3.1",
     "@chakra-ui/react": "^2.8.2",
     "@chakra-ui/theme": "^3.4.6",

@@ -16,7 +16,7 @@ import DashboardLayout from '../layouts/DashboardLayout';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { useMentalHealth } from '../context/MentalHealthContext';
-import { generateMentalHealthAdvice, AssessmentResult, MentalHealthAdvice } from '../services/mentalHealthAPI';
+import { generateMentalHealthAdvice, AssessmentResult, MentalHealthAdvice, getUserMoods, createUserMood, updateUserMood, UserMoodRecord } from '../services/mentalHealthAPI';
 import MentalHealthAdviceModal from '../components/MentalHealthAdviceModal';
 
 const { Title, Paragraph } = Typography;
@@ -65,7 +65,7 @@ const CategoryCard = styled(Card)`
 
 const MentalHealthSupport: React.FC = () => {
   const navigate = useNavigate();
-  const { mentalHealthData } = useMentalHealth();
+  // const { mentalHealthData } = useMentalHealth();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   // AI Advice states
@@ -87,6 +87,11 @@ const MentalHealthSupport: React.FC = () => {
     }
     return null;
   });
+
+  // Mood record states
+  const [moodLoading, setMoodLoading] = useState(true);
+  const [moodError, setMoodError] = useState<string | null>(null);
+  const [latestMood, setLatestMood] = useState<UserMoodRecord | null>(null);
 
   // Mental Health Assessment Categories
   const assessmentCategories = [
@@ -142,18 +147,20 @@ const MentalHealthSupport: React.FC = () => {
       const assessmentResults: AssessmentResult[] = [
         {
           type: 'mental',
-          score: mentalHealthData.comprehensiveEvaluation === 'Stable' ? 30 : 70,
+          score: latestMood?.totalEvaluation === 'Stable' ? 30 : 70,
           maxScore: 90,
-          level: mentalHealthData.comprehensiveEvaluation,
+          level: latestMood?.totalEvaluation || 'Unstable', // ensure string
           answers: {}
         },
         {
           type: 'stress',
-          score: Number(mentalHealthData.stressIndex),
+          score: typeof latestMood?.stressValue === 'number' ? latestMood.stressValue : 0,
           maxScore: 100,
-          level: Number(mentalHealthData.stressIndex) <= 25 ? 'Low' : 
-                 Number(mentalHealthData.stressIndex) <= 50 ? 'Moderate' :
-                 Number(mentalHealthData.stressIndex) <= 75 ? 'High' : 'Very High',
+          level: typeof latestMood?.stressValue === 'number'
+            ? (latestMood.stressValue <= 25 ? 'Low' :
+               latestMood.stressValue <= 50 ? 'Moderate' :
+               latestMood.stressValue <= 75 ? 'High' : 'Very High')
+            : 'Moderate',
           answers: {}
         },
         {
@@ -186,16 +193,16 @@ const MentalHealthSupport: React.FC = () => {
 
   // Check if all assessments are completed
   const hasCompletedAllAssessments = () => {
-    const hasMental = mentalHealthData.comprehensiveEvaluation !== '--';
-    const hasStress = mentalHealthData.stressIndex !== '--';
+    const hasMental = !!latestMood?.totalEvaluation;
+    const hasStress = typeof latestMood?.stressValue === 'number';
     const hasAnxiety = true; // We'll assume anxiety assessment is completed if we have other data
     
     console.log('Assessment completion status:', {
       mental: hasMental,
       stress: hasStress,
       anxiety: hasAnxiety,
-      comprehensiveEvaluation: mentalHealthData.comprehensiveEvaluation,
-      stressIndex: mentalHealthData.stressIndex
+      comprehensiveEvaluation: latestMood?.totalEvaluation,
+      stressValue: latestMood?.stressValue
     });
     
     return hasMental && hasStress && hasAnxiety;
@@ -213,6 +220,30 @@ const MentalHealthSupport: React.FC = () => {
       setShowAdviceModal(true);
     }
   };
+
+  // Fetch latest mood record on mount
+  React.useEffect(() => {
+    const fetchMood = async () => {
+      setMoodLoading(true);
+      setMoodError(null);
+      try {
+        const res = await getUserMoods();
+        if (res.code === 200 && res.data.length > 0) {
+          // Sort by recordTime desc, pick latest
+          const sorted = [...res.data].sort((a, b) => new Date(b.recordTime).getTime() - new Date(a.recordTime).getTime());
+          setLatestMood(sorted[0]);
+        } else {
+          setLatestMood(null);
+        }
+      } catch (err: any) {
+        setMoodError(err.message || 'Failed to load mood data');
+        setLatestMood(null);
+      } finally {
+        setMoodLoading(false);
+      }
+    };
+    fetchMood();
+  }, []);
 
   return (
     <DashboardLayout>
@@ -268,104 +299,112 @@ const MentalHealthSupport: React.FC = () => {
             </div>
           }
         >
-          <Row gutter={[24, 24]}>
-            <Col span={8}>
-              <Card
-                size="small"
-                title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Comprehensive Evaluation</span>}
-                style={{
-                  textAlign: 'center',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                  background: '#fff'
-                }}
-              >
-                <Statistic
-                  value={mentalHealthData.comprehensiveEvaluation}
-                  valueStyle={{
-                    color: mentalHealthData.comprehensiveEvaluation === 'Stable' ? '#52c41a' :
-                           mentalHealthData.comprehensiveEvaluation === 'Unstable' ? '#f5222d' : '#666',
-                    fontSize: '24px',
-                    fontWeight: 'bold'
+          {moodLoading ? (
+            <div style={{ textAlign: 'center', padding: 24 }}>Loading mood data...</div>
+          ) : moodError ? (
+            <div style={{ color: 'red', textAlign: 'center', padding: 24 }}>{moodError}</div>
+          ) : latestMood ? (
+            <Row gutter={[24, 24]}>
+              <Col span={8}>
+                <Card
+                  size="small"
+                  title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Comprehensive Evaluation</span>}
+                  style={{
+                    textAlign: 'center',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    background: '#fff'
                   }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{
-                    width: '100%',
-                    height: '6px',
-                    borderRadius: '3px',
-                    background: mentalHealthData.comprehensiveEvaluation === 'Stable' ? '#52c41a' :
-                               mentalHealthData.comprehensiveEvaluation === 'Unstable' ? '#f5222d' : '#d9d9d9'
-                  }} />
-                </div>
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card
-                size="small"
-                title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Stress Index</span>}
-                style={{
-                  textAlign: 'center',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                  background: '#fff'
-                }}
-              >
-                <Statistic
-                  value={mentalHealthData.stressIndex}
-                  suffix={mentalHealthData.stressIndex !== '--' ? '/100' : ''}
-                  valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <Progress
-                    percent={mentalHealthData.stressIndex !== '--' ? Number(mentalHealthData.stressIndex) : 0}
-                    showInfo={false}
-                    strokeColor={{
-                      '0%': '#108ee9',
-                      '100%': '#87d068',
+                >
+                  <Statistic
+                    value={latestMood.totalEvaluation}
+                    valueStyle={{
+                      color: latestMood.totalEvaluation === 'Stable' ? '#52c41a' :
+                             latestMood.totalEvaluation === 'Unstable' ? '#f5222d' : '#666',
+                      fontSize: '24px',
+                      fontWeight: 'bold'
                     }}
-                    size="small"
                   />
-                </div>
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card
-                size="small"
-                title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Today's Mood</span>}
-                style={{
-                  textAlign: 'center',
-                  borderRadius: '12px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
-                  background: '#fff'
-                }}
-              >
-                <Statistic
-                  value={mentalHealthData.todaysMood}
-                  valueStyle={{
-                    color: mentalHealthData.todaysMood === 'Very good' ? '#52c41a' :
-                           mentalHealthData.todaysMood === 'Good' ? '#1890ff' :
-                           mentalHealthData.todaysMood === 'Sad' ? '#fa8c16' :
-                           mentalHealthData.todaysMood === 'Depressed' ? '#f5222d' : '#666',
-                    fontSize: '24px',
-                    fontWeight: 'bold'
-                  }}
-                />
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    fontSize: '24px'
-                  }}>
-                    {mentalHealthData.todaysMood === 'Very good' ? '😊' :
-                     mentalHealthData.todaysMood === 'Good' ? '🙂' :
-                     mentalHealthData.todaysMood === 'Sad' ? '😔' :
-                     mentalHealthData.todaysMood === 'Depressed' ? '😢' : '😐'}
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{
+                      width: '100%',
+                      height: '6px',
+                      borderRadius: '3px',
+                      background: latestMood.totalEvaluation === 'Stable' ? '#52c41a' :
+                                 latestMood.totalEvaluation === 'Unstable' ? '#f5222d' : '#d9d9d9'
+                    }} />
                   </div>
-                </div>
-              </Card>
-            </Col>
-          </Row>
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card
+                  size="small"
+                  title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Stress Index</span>}
+                  style={{
+                    textAlign: 'center',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    background: '#fff'
+                  }}
+                >
+                  <Statistic
+                    value={latestMood.stressValue}
+                    suffix={'/100'}
+                    valueStyle={{ color: '#1890ff', fontSize: '24px', fontWeight: 'bold' }}
+                  />
+                  <div style={{ marginTop: '8px' }}>
+                    <Progress
+                      percent={latestMood.stressValue}
+                      showInfo={false}
+                      strokeColor={{
+                        '0%': '#108ee9',
+                        '100%': '#87d068',
+                      }}
+                      size="small"
+                    />
+                  </div>
+                </Card>
+              </Col>
+              <Col span={8}>
+                <Card
+                  size="small"
+                  title={<span style={{ fontSize: '16px', fontWeight: 'bold' }}>Today's Mood</span>}
+                  style={{
+                    textAlign: 'center',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                    background: '#fff'
+                  }}
+                >
+                  <Statistic
+                    value={latestMood.todaysMood}
+                    valueStyle={{
+                      color: latestMood.todaysMood === 'Very good' ? '#52c41a' :
+                             latestMood.todaysMood === 'Good' ? '#1890ff' :
+                             latestMood.todaysMood === 'Sad' ? '#fa8c16' :
+                             latestMood.todaysMood === 'Depressed' ? '#f5222d' : '#666',
+                      fontSize: '24px',
+                      fontWeight: 'bold'
+                    }}
+                  />
+                  <div style={{ marginTop: '8px' }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      fontSize: '24px'
+                    }}>
+                      {latestMood.todaysMood === 'Very good' ? '😊' :
+                       latestMood.todaysMood === 'Good' ? '🙂' :
+                       latestMood.todaysMood === 'Sad' ? '😔' :
+                       latestMood.todaysMood === 'Depressed' ? '😢' : '😐'}
+                    </div>
+                  </div>
+                </Card>
+              </Col>
+            </Row>
+          ) : (
+            <div style={{ textAlign: 'center', padding: 24 }}>No mood record found.</div>
+          )}
         </Card>
 
         {/* Main Function Entries */}
