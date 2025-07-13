@@ -19,7 +19,7 @@ const { Title, Text, Paragraph } = Typography;
 
 require('@solana/wallet-adapter-react-ui/styles.css');
 
-// NFT Incentive page core component
+// NFT页面的核心组件
 const NFTIncentiveCore: React.FC = () => {
     const { connected, publicKey } = useWallet();
     const { connection } = useConnection();
@@ -40,7 +40,7 @@ const NFTIncentiveCore: React.FC = () => {
                 fetchNFTs();
             } catch (error: any) {
                 console.error('Error initializing NFT service:', error);
-                // Use local data
+                // 使用本地数据
                 setNfts(availableNFTs);
             }
         } else {
@@ -66,11 +66,11 @@ const NFTIncentiveCore: React.FC = () => {
     const getCategoryTitle = () => {
         switch (currentCategory) {
             case 'all':
-                return 'All NFTs';
+                return 'All NFTs - Complete Collection';
             case 'owned':
-                return 'Activated Benefits';
+                return 'Activated Benefits - Your Achievements';
             case 'unowned':
-                return 'Locked Benefits';
+                return 'Locked Benefits - Available to Earn';
             default:
                 return 'NFT Collection';
         }
@@ -78,53 +78,17 @@ const NFTIncentiveCore: React.FC = () => {
 
     const tabItems = [
         {
-            key: 'all',
-            label: (
-                <Space>
-                    <StarOutlined />
-                    All NFTs
-                </Space>
-            ),
-            children: (
-                <NFTGallery
-                    nfts={nfts}
-                    category="all"
-                    nftService={nftService || undefined}
-                    walletAddress={publicKey?.toString()}
-                    onNFTMinted={fetchNFTs}
-                />
-            )
-        },
-        {
-            key: 'owned',
+            key: 'gallery',
             label: (
                 <Space>
                     <GiftOutlined />
-                    Owned
+                    NFT Gallery
                 </Space>
             ),
             children: (
                 <NFTGallery
                     nfts={nfts}
-                    category="owned"
-                    nftService={nftService || undefined}
-                    walletAddress={publicKey?.toString()}
-                    onNFTMinted={fetchNFTs}
-                />
-            )
-        },
-        {
-            key: 'unowned',
-            label: (
-                <Space>
-                    <PercentageOutlined />
-                    Not Owned
-                </Space>
-            ),
-            children: (
-                <NFTGallery
-                    nfts={nfts}
-                    category="unowned"
+                    category={currentCategory}
                     nftService={nftService || undefined}
                     walletAddress={publicKey?.toString()}
                     onNFTMinted={fetchNFTs}
@@ -152,7 +116,7 @@ const NFTIncentiveCore: React.FC = () => {
 
     return (
         <div style={{ padding: '24px' }}>
-            {/* Page Header */}
+            {/* 页面头部 */}
             <Card style={{ marginBottom: 24 }}>
                 <Row justify="space-between" align="middle">
                     <Col span={16}>
@@ -170,65 +134,137 @@ const NFTIncentiveCore: React.FC = () => {
             </Card>
 
             {/* User Info Card */}
+            {connected && publicKey && (
+                <Card style={{ marginBottom: 24 }}>
+                    <Row gutter={24}>
+                        <Col span={8}>
+                            <Space>
+                                <WalletOutlined style={{ fontSize: 24, color: '#52c41a' }} />
+                                <div>
+                                    <Text strong>Connected Wallet</Text>
+                                    <br />
+                                    <Text code>{publicKey.toString().slice(0, 8)}...{publicKey.toString().slice(-8)}</Text>
+                                </div>
+                            </Space>
+                        </Col>
+                        <Col span={8}>
+                            <Space>
+                                <GiftOutlined style={{ fontSize: 24, color: '#722ed1' }} />
+                                <div>
+                                    <Text strong>Owned NFTs</Text>
+                                    <br />
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#722ed1' }}>
+                                        {nfts.filter(nft => nft.isOwned).length} / {nfts.length}
+                                    </Text>
+                                </div>
+                            </Space>
+                        </Col>
+                        <Col span={8}>
+                            <Space>
+                                <StarOutlined style={{ fontSize: 24, color: '#faad14' }} />
+                                <div>
+                                    <Text strong>Eligible to Claim</Text>
+                                    <br />
+                                    <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#faad14' }}>
+                                        {nfts.filter(nft => nft.isEligible && !nft.isOwned).length}
+                                    </Text>
+                                </div>
+                            </Space>
+                        </Col>
+                    </Row>
+                </Card>
+            )}
+
+            {/* Feature Description Card */}
             <Card style={{ marginBottom: 24 }}>
+                <Title level={4}>How NFT Incentives Work</Title>
                 <Row gutter={16}>
-                    <Col span={12}>
-                        <div>
-                            <Text type="secondary">Logged User</Text>
-                            <Title level={4} style={{ margin: '4px 0' }}>
-                                {userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : username}
-                            </Title>
-                        </div>
+                    <Col span={8}>
+                        <Space direction="vertical" align="center" style={{ width: '100%', textAlign: 'center' }}>
+                            <PercentageOutlined style={{ fontSize: 48, color: '#722ed1' }} />
+                            <Title level={5}>Discount Benefits</Title>
+                            <Text type="secondary">
+                                Complete health records to earn discount cards for platform purchases
+                            </Text>
+                        </Space>
                     </Col>
-                    <Col span={12}>
-                        <div>
-                            <Text type="secondary">Wallet Status</Text>
-                            <Title level={4} style={{ margin: '4px 0' }}>
-                                {connected 
-                                    ? `${publicKey?.toString().slice(0, 8)}...${publicKey?.toString().slice(-8)}`
-                                    : 'Wallet Not Connected'
-                                }
-                            </Title>
-                        </div>
+                    <Col span={8}>
+                        <Space direction="vertical" align="center" style={{ width: '100%', textAlign: 'center' }}>
+                            <StarOutlined style={{ fontSize: 48, color: '#faad14' }} />
+                            <Title level={5}>Achievement Certificates</Title>
+                            <Text type="secondary">
+                                Earn prestigious titles by mastering diet or exercise habits
+                            </Text>
+                        </Space>
+                    </Col>
+                    <Col span={8}>
+                        <Space direction="vertical" align="center" style={{ width: '100%', textAlign: 'center' }}>
+                            <WalletOutlined style={{ fontSize: 48, color: '#52c41a' }} />
+                            <Title level={5}>Blockchain Storage</Title>
+                            <Text type="secondary">
+                                Store your NFTs securely on the blockchain for permanent ownership
+                            </Text>
+                        </Space>
                     </Col>
                 </Row>
             </Card>
 
-            {/* Alert */}
+            {/* Connection Status */}
             {!connected && (
                 <Alert
-                    message="Connect Wallet for Full Experience"
-                    description="Connect your Solana wallet to view owned NFTs and earn new incentive benefits."
-                    type="info"
+                    message="Wallet Not Connected"
+                    description="Please connect your wallet to view and manage your NFTs."
+                    type="warning"
                     showIcon
                     style={{ marginBottom: 24 }}
                 />
             )}
 
-            {/* NFT Display Area */}
-            <Card>
-                <Tabs
-                    activeKey={currentCategory}
-                    onChange={setCurrentCategory}
-                    items={tabItems}
-                    size="large"
-                />
-            </Card>
-
             {/* Loading State */}
             {isLoading && (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <Card style={{ textAlign: 'center', padding: '60px 0' }}>
                     <Spin size="large" />
-                    <Text style={{ display: 'block', marginTop: 16 }}>
-                        Loading your NFT collection...
-                    </Text>
-                </div>
+                    <div style={{ marginTop: 16 }}>
+                        <Text>Loading NFT data...</Text>
+                    </div>
+                </Card>
+            )}
+
+            {/* Category Tabs and Content */}
+            {!isLoading && (
+                <Card>
+                    <div style={{ marginBottom: 16 }}>
+                        <Title level={4}>{getCategoryTitle()}</Title>
+                        <Space>
+                            <Button 
+                                type={currentCategory === 'all' ? 'primary' : 'default'}
+                                onClick={() => setCurrentCategory('all')}
+                            >
+                                All ({nfts.length})
+                            </Button>
+                            <Button 
+                                type={currentCategory === 'owned' ? 'primary' : 'default'}
+                                onClick={() => setCurrentCategory('owned')}
+                            >
+                                Owned ({nfts.filter(nft => nft.isOwned).length})
+                            </Button>
+                            <Button 
+                                type={currentCategory === 'unowned' ? 'primary' : 'default'}
+                                onClick={() => setCurrentCategory('unowned')}
+                            >
+                                Available ({nfts.filter(nft => !nft.isOwned).length})
+                            </Button>
+                        </Space>
+                    </div>
+                    
+                    <Tabs defaultActiveKey="gallery" items={tabItems} />
+                </Card>
             )}
         </div>
     );
 };
 
-// Main NFT page component with wallet provider
+// 主NFT页面组件，带有钱包提供者
 const NFTIncentive: React.FC = () => {
     return (
         <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
@@ -241,7 +277,7 @@ const NFTIncentive: React.FC = () => {
     );
 };
 
-// NFT page with layout
+// 带有布局的NFT页面
 const NFTIncentiveWithLayout: React.FC = () => {
     return (
         <DashboardLayout>

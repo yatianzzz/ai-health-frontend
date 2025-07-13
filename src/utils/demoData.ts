@@ -1,6 +1,6 @@
-// 演示数据工具函数
+// Demo data utility functions
 export const initializeDemoData = () => {
-    // 创建一些演示用的钱包地址和NFT数据
+    // Create some demo wallet addresses and NFT data
     const demoWallets = [
         '9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM',
         '4vMsoUT2BWatFweudnQM1xedRLfJgJ7hswhHpKMvMtXs',
@@ -17,9 +17,9 @@ export const initializeDemoData = () => {
         'PowerKing'
     ];
 
-    // 为每个钱包随机分配一些NFT
+    // Randomly assign some NFTs to each wallet
     demoWallets.forEach(wallet => {
-        // 随机选择1-3个NFT
+        // Randomly select 1-3 NFTs
         const nftCount = Math.floor(Math.random() * 3) + 1;
         const selectedNFTs: string[] = [];
         
@@ -30,7 +30,7 @@ export const initializeDemoData = () => {
             }
         }
         
-        // 存储到localStorage
+        // Store to localStorage
         localStorage.setItem(`ownedNFTs_${wallet}`, JSON.stringify(selectedNFTs));
     });
 
@@ -40,7 +40,7 @@ export const initializeDemoData = () => {
     });
 };
 
-// 清理演示数据
+// Clear demo data
 export const clearDemoData = () => {
     for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
@@ -51,7 +51,7 @@ export const clearDemoData = () => {
     console.log('Demo data cleared');
 };
 
-// 检查是否已有演示数据
+// Check if demo data already exists
 export const hasDemoData = (): boolean => {
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);

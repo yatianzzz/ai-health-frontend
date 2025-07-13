@@ -19,89 +19,108 @@ interface NFTWalletInteractionProps {
     onSuccess?: () => void;
 }
 
-export const NFTWalletInteraction: React.FC<NFTWalletInteractionProps> = ({
-    nfts,
-    nftService,
+export const NFTWalletInteraction: React.FC<NFTWalletInteractionProps> = ({ 
+    nfts, 
+    nftService, 
     walletAddress,
     onSuccess
 }) => {
-    const [selectedNftForDeposit, setSelectedNftForDeposit] = useState<string>('');
-    const [selectedNftForReceive, setSelectedNftForReceive] = useState<string>('');
-    const [selectedNftForTransfer, setSelectedNftForTransfer] = useState<string>('');
-    const [transferAddress, setTransferAddress] = useState<string>('');
-    const [onChainNfts, setOnChainNfts] = useState<string[]>([]);
-    const [loading, setLoading] = useState({
-        deposit: false,
-        receive: false,
-        transfer: false
-    });
+    const [selectedNFT, setSelectedNFT] = useState<string>('');
+    const [recipientAddress, setRecipientAddress] = useState<string>('');
+    const [loading, setLoading] = useState<{ [key: string]: boolean }>({});
+    const [chainNFTs, setChainNFTs] = useState<string[]>([]);
 
-    // Get owned NFTs
-    const ownedNfts = nfts.filter(nft => nft.isOwned);
+    // 获取用户拥有的NFT
+    const ownedNFTs = nfts.filter(nft => nft.isOwned);
 
     useEffect(() => {
-        const fetchOnChainNfts = async () => {
-            if (nftService && walletAddress) {
-                try {
-                    const onChainList = await nftService.getChainNFTs(walletAddress);
-                    setOnChainNfts(onChainList);
-                } catch (error) {
-                    console.error('Failed to get on-chain NFTs:', error);
-                }
-            }
-        };
-
-        fetchOnChainNfts();
+        if (nftService && walletAddress) {
+            fetchChainNFTs();
+        }
     }, [nftService, walletAddress]);
 
-    const handleDepositToChain = async () => {
-        if (!selectedNftForDeposit || !nftService || !walletAddress) return;
+    const fetchChainNFTs = async () => {
+        if (!nftService || !walletAddress) return;
 
-        setLoading(prev => ({ ...prev, deposit: true }));
         try {
-            await nftService.depositNFTToChain(selectedNftForDeposit, walletAddress);
-            message.success('NFT deposited to chain successfully!');
-            setSelectedNftForDeposit('');
+            const chainNFTIds = await nftService.getChainNFTs(walletAddress);
+            setChainNFTs(chainNFTIds);
+        } catch (error) {
+            console.error('获取链上NFT失败:', error);
+        }
+    };
+
+    const handleDepositNFT = async (nftId: string) => {
+        if (!nftService || !walletAddress) {
+            message.error('Wallet not connected or service unavailable');
+            return;
+        }
+
+        setLoading(prev => ({ ...prev, [`deposit_${nftId}`]: true }));
+        try {
+            await nftService.depositNFTToChain(nftId, walletAddress);
+            message.success('NFT deposited to blockchain successfully!');
+            await fetchChainNFTs();
             onSuccess?.();
         } catch (error: any) {
             message.error(error.message || 'Failed to deposit NFT');
         } finally {
-            setLoading(prev => ({ ...prev, deposit: false }));
+            setLoading(prev => ({ ...prev, [`deposit_${nftId}`]: false }));
         }
     };
 
-    const handleReceiveFromChain = async () => {
-        if (!selectedNftForReceive || !nftService || !walletAddress) return;
+    const handleReceiveNFT = async (nftId: string) => {
+        if (!nftService || !walletAddress) {
+            message.error('Wallet not connected or service unavailable');
+            return;
+        }
 
-        setLoading(prev => ({ ...prev, receive: true }));
+        setLoading(prev => ({ ...prev, [`receive_${nftId}`]: true }));
         try {
-            await nftService.receiveNFTFromChain(selectedNftForReceive, walletAddress);
-            message.success('NFT received successfully!');
-            setSelectedNftForReceive('');
+            await nftService.receiveNFTFromChain(nftId, walletAddress);
+            message.success('NFT received from blockchain successfully!');
+            await fetchChainNFTs();
             onSuccess?.();
         } catch (error: any) {
             message.error(error.message || 'Failed to receive NFT');
         } finally {
-            setLoading(prev => ({ ...prev, receive: false }));
+            setLoading(prev => ({ ...prev, [`receive_${nftId}`]: false }));
         }
     };
 
-    const handleTransferNft = async () => {
-        if (!selectedNftForTransfer || !transferAddress || !nftService || !walletAddress) return;
+    const handleTransferNFT = async () => {
+        if (!selectedNFT || !recipientAddress) {
+            message.error('Please select an NFT and enter a recipient address');
+            return;
+        }
 
-        setLoading(prev => ({ ...prev, transfer: true }));
+        if (!nftService || !walletAddress) {
+            message.error('Wallet not connected or service unavailable');
+            return;
+        }
+
+        setLoading(prev => ({ ...prev, [`transfer_${selectedNFT}`]: true }));
         try {
-            await nftService.transferNFT(walletAddress, selectedNftForTransfer, transferAddress);
+            await nftService.transferNFT(selectedNFT, walletAddress, recipientAddress);
             message.success('NFT transferred successfully!');
-            setSelectedNftForTransfer('');
-            setTransferAddress('');
+            setSelectedNFT('');
+            setRecipientAddress('');
             onSuccess?.();
         } catch (error: any) {
-            console.error('Transfer error:', error);
             message.error(error.message || 'Failed to transfer NFT');
         } finally {
-            setLoading(prev => ({ ...prev, transfer: false }));
+            setLoading(prev => ({ ...prev, [`transfer_${selectedNFT}`]: false }));
         }
+    };
+
+    const getNFTName = (nftId: string): string => {
+        const nft = nfts.find(n => n.id === nftId);
+        return nft ? nft.name : nftId;
+    };
+
+    const getNFTImage = (nftId: string): string => {
+        const nft = nfts.find(n => n.id === nftId);
+        return nft ? nft.frontImage : '';
     };
 
     if (!walletAddress) {
@@ -118,163 +137,186 @@ export const NFTWalletInteraction: React.FC<NFTWalletInteractionProps> = ({
     return (
         <div style={{ padding: '0 24px' }}>
             <Row gutter={[24, 24]}>
-                {/* Deposit to Chain */}
+                {/* 存入链上 */}
                 <Col xs={24} lg={12}>
                     <Card 
                         title={
                             <Space>
                                 <CloudUploadOutlined style={{ color: '#1890ff' }} />
-                                Deposit to Chain
+                                Deposit to Blockchain
                             </Space>
                         }
                         style={{ height: '100%' }}
                     >
                         <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>
-                            Deposit your NFTs to the blockchain for secure storage and retrieval at any time
+                            Deposit your NFTs to the blockchain for secure storage and withdrawal at any time
                         </Text>
                         
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                            <div>
-                                <Text strong>Select NFT to Deposit:</Text>
-                                <Select
-                                    placeholder="Select an NFT"
-                                    style={{ width: '100%', marginTop: 8 }}
-                                    value={selectedNftForDeposit}
-                                    onChange={setSelectedNftForDeposit}
-                                >
-                                    {ownedNfts.map(nft => (
-                                        <Option key={nft.id} value={nft.id}>
-                                            <Space>
-                                                <Badge 
-                                                    color={nft.category === 'discount' ? 'purple' : 'orange'} 
-                                                    text={nft.category === 'discount' ? 'Discount Benefits' : 'Achievement Certificate'}
+                        {ownedNFTs.length > 0 ? (
+                            <List
+                                size="small"
+                                dataSource={ownedNFTs}
+                                renderItem={(nft) => (
+                                    <List.Item
+                                        actions={[
+                                            <Button
+                                                key="deposit"
+                                                type="primary"
+                                                size="small"
+                                                icon={<CloudUploadOutlined />}
+                                                loading={loading[`deposit_${nft.id}`]}
+                                                onClick={() => handleDepositNFT(nft.id)}
+                                            >
+                                                Deposit
+                                            </Button>
+                                        ]}
+                                    >
+                                        <List.Item.Meta
+                                            avatar={
+                                                <img 
+                                                    src={nft.frontImage} 
+                                                    alt={nft.name}
+                                                    style={{ width: 40, height: 40, borderRadius: 8 }}
                                                 />
-                                                {nft.name}
-                                            </Space>
-                                        </Option>
-                                    ))}
-                                </Select>
+                                            }
+                                            title={nft.name}
+                                            description={
+                                                <Text type="secondary" style={{ fontSize: 12 }}>
+                                                    {nft.category === 'discount' ? 'Discount Benefits' : 'Achievement Certificate'}
+                                                </Text>
+                                            }
+                                        />
+                                    </List.Item>
+                                )}
+                            />
+                        ) : (
+                            <div style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
+                                <InfoCircleOutlined style={{ fontSize: 24, marginBottom: 8 }} />
+                                <div>No NFTs to deposit</div>
                             </div>
-                            
-                            <Button
-                                type="primary"
-                                icon={<CloudUploadOutlined />}
-                                onClick={handleDepositToChain}
-                                loading={loading.deposit}
-                                disabled={!selectedNftForDeposit}
-                                style={{ width: '100%' }}
-                            >
-                                Deposit to Chain
-                            </Button>
-                        </Space>
+                        )}
                     </Card>
                 </Col>
 
-                {/* Receive from Chain */}
+                {/* 从链上接收 */}
                 <Col xs={24} lg={12}>
                     <Card 
                         title={
                             <Space>
                                 <CloudDownloadOutlined style={{ color: '#52c41a' }} />
-                                Receive from Chain
+                                Receive from Blockchain
                             </Space>
                         }
                         style={{ height: '100%' }}
                     >
                         <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>
-                            Receive NFTs from blockchain to your local wallet
+                            Receive NFTs from the blockchain to your local collection
                         </Text>
                         
-                        <Space direction="vertical" style={{ width: '100%' }}>
-                            <div>
-                                <Text strong>Select On-Chain NFT:</Text>
-                                <Select
-                                    placeholder="Select an on-chain NFT"
-                                    style={{ width: '100%', marginTop: 8 }}
-                                    value={selectedNftForReceive}
-                                    onChange={setSelectedNftForReceive}
-                                >
-                                    {onChainNfts.map(nftId => {
-                                        const nftInfo = nfts.find(n => n.id === nftId);
-                                        return (
-                                            <Option key={nftId} value={nftId}>
-                                                {nftInfo ? nftInfo.name : nftId}
-                                            </Option>
-                                        );
-                                    })}
-                                </Select>
+                        {chainNFTs.length > 0 ? (
+                            <List
+                                size="small"
+                                dataSource={chainNFTs}
+                                renderItem={(nftId) => {
+                                    const nft = nfts.find(n => n.id === nftId);
+                                    return (
+                                        <List.Item
+                                            actions={[
+                                                <Button
+                                                    key="receive"
+                                                    type="primary"
+                                                    size="small"
+                                                    icon={<CloudDownloadOutlined />}
+                                                    loading={loading[`receive_${nftId}`]}
+                                                    onClick={() => handleReceiveNFT(nftId)}
+                                                    style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                                                >
+                                                    Receive
+                                                </Button>
+                                            ]}
+                                        >
+                                            <List.Item.Meta
+                                                avatar={
+                                                    <img 
+                                                        src={nft?.frontImage} 
+                                                        alt={nft?.name}
+                                                        style={{ width: 40, height: 40, borderRadius: 8 }}
+                                                    />
+                                                }
+                                                title={nft?.name || nftId}
+                                                description={
+                                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                                        On Blockchain
+                                                    </Text>
+                                                }
+                                            />
+                                        </List.Item>
+                                    );
+                                }}
+                            />
+                        ) : (
+                            <div style={{ textAlign: 'center', color: '#999', padding: '20px 0' }}>
+                                <InfoCircleOutlined style={{ fontSize: 24, marginBottom: 8 }} />
+                                <div>No NFTs on blockchain</div>
                             </div>
-                            
-                            <Button
-                                type="primary"
-                                icon={<CloudDownloadOutlined />}
-                                onClick={handleReceiveFromChain}
-                                loading={loading.receive}
-                                disabled={!selectedNftForReceive}
-                                style={{ width: '100%', backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-                            >
-                                Receive from Chain
-                            </Button>
-                        </Space>
+                        )}
                     </Card>
                 </Col>
 
-                {/* Transfer NFT */}
-                <Col xs={24}>
+                {/* 转移NFT */}
+                <Col xs={24} style={{ marginTop: 24 }}>
                     <Card 
                         title={
                             <Space>
-                                <SendOutlined style={{ color: '#faad14' }} />
+                                <SendOutlined style={{ color: '#722ed1' }} />
                                 Transfer NFT
                             </Space>
                         }
                     >
                         <Text type="secondary" style={{ marginBottom: 16, display: 'block' }}>
-                            Transfer your NFTs to other users
+                            Transfer your NFTs to another wallet address
                         </Text>
                         
                         <Row gutter={16}>
-                            <Col xs={24} md={8}>
-                                <Text strong>Select NFT to Transfer:</Text>
-                                <Select
-                                    placeholder="Select an NFT"
-                                    style={{ width: '100%', marginTop: 8 }}
-                                    value={selectedNftForTransfer}
-                                    onChange={setSelectedNftForTransfer}
-                                >
-                                    {ownedNfts.map(nft => (
-                                        <Option key={nft.id} value={nft.id}>
-                                            <Space>
-                                                <Badge 
-                                                    color={nft.category === 'discount' ? 'purple' : 'orange'} 
-                                                    text={nft.category === 'discount' ? 'Discount Benefits' : 'Achievement Certificate'}
-                                                />
+                            <Col span={8}>
+                                <div style={{ marginBottom: 16 }}>
+                                    <Text strong>Select NFT:</Text>
+                                    <Select
+                                        style={{ width: '100%', marginTop: 8 }}
+                                        placeholder="Choose NFT to transfer"
+                                        value={selectedNFT}
+                                        onChange={setSelectedNFT}
+                                    >
+                                        {ownedNFTs.map(nft => (
+                                            <Option key={nft.id} value={nft.id}>
                                                 {nft.name}
-                                            </Space>
-                                        </Option>
-                                    ))}
-                                </Select>
+                                            </Option>
+                                        ))}
+                                    </Select>
+                                </div>
                             </Col>
-                            
-                            <Col xs={24} md={10}>
-                                <Text strong>Recipient Address:</Text>
-                                <Input
-                                    placeholder="Enter recipient wallet address"
-                                    style={{ marginTop: 8 }}
-                                    value={transferAddress}
-                                    onChange={(e) => setTransferAddress(e.target.value)}
-                                />
+                            <Col span={12}>
+                                <div style={{ marginBottom: 16 }}>
+                                    <Text strong>Recipient Address:</Text>
+                                    <Input
+                                        style={{ marginTop: 8 }}
+                                        placeholder="Enter recipient wallet address"
+                                        value={recipientAddress}
+                                        onChange={(e) => setRecipientAddress(e.target.value)}
+                                        prefix={<WalletOutlined />}
+                                    />
+                                </div>
                             </Col>
-                            
-                            <Col xs={24} md={6}>
-                                <div style={{ paddingTop: 24 }}>
+                            <Col span={4}>
+                                <div style={{ marginTop: 24 }}>
                                     <Button
                                         type="primary"
                                         icon={<SendOutlined />}
-                                        onClick={handleTransferNft}
-                                        loading={loading.transfer}
-                                        disabled={!selectedNftForTransfer || !transferAddress}
-                                        style={{ width: '100%', backgroundColor: '#faad14', borderColor: '#faad14' }}
+                                        loading={loading[`transfer_${selectedNFT}`]}
+                                        onClick={handleTransferNFT}
+                                        disabled={!selectedNFT || !recipientAddress}
+                                        style={{ backgroundColor: '#722ed1', borderColor: '#722ed1' }}
+                                        block
                                     >
                                         Transfer
                                     </Button>
@@ -283,51 +325,18 @@ export const NFTWalletInteraction: React.FC<NFTWalletInteractionProps> = ({
                         </Row>
                     </Card>
                 </Col>
-
-                {/* Owned NFT List */}
-                <Col xs={24}>
-                    <Card 
-                        title={
-                            <Space>
-                                <WalletOutlined style={{ color: '#722ed1' }} />
-                                My NFT Collection
-                            </Space>
-                        }
-                    >
-                        {ownedNfts.length > 0 ? (
-                            <List
-                                dataSource={ownedNfts}
-                                renderItem={nft => (
-                                    <List.Item>
-                                        <List.Item.Meta
-                                            title={nft.name}
-                                            description={nft.description}
-                                        />
-                                        <div>
-                                            <Badge 
-                                                color={nft.category === 'discount' ? 'purple' : 'orange'} 
-                                                text={nft.category === 'discount' ? 'Discount Benefits' : 'Achievement Certificate'}
-                                            />
-                                        </div>
-                                    </List.Item>
-                                )}
-                            />
-                        ) : (
-                            <Text type="secondary">No NFTs owned yet</Text>
-                        )}
-                    </Card>
-                </Col>
             </Row>
 
             <Divider />
 
+            {/* 帮助信息 */}
             <Card size="small" style={{ marginTop: 16 }}>
                 <Space direction="vertical" size={8}>
                     <Text strong>💡 Usage Instructions:</Text>
-                    <Text>• <strong>Deposit to Chain</strong>: Securely store NFTs on the blockchain for better security</Text>
-                    <Text>• <strong>Receive from Chain</strong>: Receive NFTs from the blockchain to your local wallet</Text>
-                    <Text>• <strong>Transfer NFT</strong>: Transfer your NFTs to other users</Text>
-                    <Text type="secondary">⚠️ Please ensure the recipient address is correct, transfer operations cannot be undone</Text>
+                    <Text>• <strong>Deposit to Blockchain</strong>: Securely store your NFTs on the blockchain for better security</Text>
+                    <Text>• <strong>Receive from Blockchain</strong>: Receive NFTs from the blockchain to your local collection</Text>
+                    <Text>• <strong>Transfer NFT</strong>: Transfer your NFTs to another wallet address</Text>
+                    <Text type="secondary">⚠️ Please ensure the recipient address is correct, and transfer operations cannot be undone</Text>
                 </Space>
             </Card>
         </div>

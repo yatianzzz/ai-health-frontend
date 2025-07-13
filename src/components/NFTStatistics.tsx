@@ -1,281 +1,195 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Statistic, Typography, Space, Table, Progress, Badge, Spin, Empty } from 'antd';
-import { GiftOutlined, TrophyOutlined, PercentageOutlined, UserOutlined, StarOutlined } from '@ant-design/icons';
-import { NFTService } from '../services/nftService';
+import { Card, Row, Col, Statistic, Table, Progress, Tag, Typography, Space } from 'antd';
+import { TrophyOutlined, GiftOutlined, UserOutlined, PercentageOutlined } from '@ant-design/icons';
+import { NFT, availableNFTs } from '../services/nftService';
 
 const { Title, Text } = Typography;
 
 interface NFTStatisticsProps {
-    nftService?: NFTService;
+    refreshTrigger?: number;
 }
 
-interface NFTStatsData {
+interface NFTStat {
+    id: string;
+    name: string;
+    category: string;
     totalMinted: number;
-    totalUsers: number;
-    categoryStats: {
-        discount: number;
-        achievement: number;
-    };
-    popularNFTs: Array<{
-        id: string;
-        name: string;
-        mintCount: number;
-        percentage: number;
-    }>;
-    recentActivity: Array<{
-        id: string;
-        userName: string;
-        nftName: string;
-        action: string;
-        timestamp: string;
-    }>;
+    requiredRecords?: number;
+    mintedWallets: string[];
 }
 
-export const NFTStatistics: React.FC<NFTStatisticsProps> = ({ nftService }) => {
-    const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState<NFTStatsData | null>(null);
+export const NFTStatistics: React.FC<NFTStatisticsProps> = ({ refreshTrigger }) => {
+    const [stats, setStats] = useState<NFTStat[]>([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        loadStatistics();
-    }, [nftService]);
+        fetchStatistics();
+    }, [refreshTrigger]);
 
-    const loadStatistics = async () => {
-        if (!nftService) return;
-        
+    const fetchStatistics = () => {
         setLoading(true);
         try {
-            const data = await nftService.getNFTStatistics();
-            setStats(data);
+            // Simulate getting statistics data from localStorage
+            const allStats: NFTStat[] = availableNFTs.map(nft => {
+                const mintedWallets: string[] = [];
+                
+                // Traverse localStorage to find all wallets that own this NFT
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key?.startsWith('ownedNFTs_')) {
+                        const walletAddress = key.replace('ownedNFTs_', '');
+                        try {
+                            const ownedNFTs = JSON.parse(localStorage.getItem(key) || '[]');
+                            if (ownedNFTs.includes(nft.id)) {
+                                mintedWallets.push(walletAddress);
+                            }
+                        } catch (error) {
+                            console.error('Error parsing owned NFTs:', error);
+                        }
+                    }
+                }
+
+                return {
+                    id: nft.id,
+                    name: nft.name,
+                    category: nft.category,
+                    totalMinted: mintedWallets.length,
+                    requiredRecords: nft.requiredRecords,
+                    mintedWallets
+                };
+            });
+
+            setStats(allStats);
         } catch (error) {
-            console.error('Failed to load NFT statistics:', error);
+            console.error('Error fetching statistics:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const activityColumns = [
+    const totalMinted = stats.reduce((sum, stat) => sum + stat.totalMinted, 0);
+    const totalUsers = new Set(stats.flatMap(stat => stat.mintedWallets)).size;
+    const discountNFTs = stats.filter(stat => stat.category === 'discount');
+    const achievementNFTs = stats.filter(stat => stat.category === 'achievement');
+
+    const columns = [
         {
-            title: 'User',
-            dataIndex: 'userName',
-            key: 'userName',
-            render: (text: string) => (
-                <Space>
-                    <UserOutlined />
-                    {text}
+            title: 'NFT Name',
+            dataIndex: 'name',
+            key: 'name',
+            render: (text: string, record: NFTStat) => (
+                <Space direction="vertical" size="small">
+                    <Text strong>{text}</Text>
+                    <Tag color={record.category === 'discount' ? 'purple' : 'orange'}>
+                        {record.category === 'discount' ? 'Discount Benefits' : 'Achievement Certificate'}
+                    </Tag>
                 </Space>
             ),
         },
         {
-            title: 'NFT',
-            dataIndex: 'nftName',
-            key: 'nftName',
+            title: 'ID',
+            dataIndex: 'id',
+            key: 'id',
+            render: (text: string) => <Text code>{text}</Text>
         },
         {
-            title: 'Action',
-            dataIndex: 'action',
-            key: 'action',
-            render: (action: string) => {
-                const colorMap: { [key: string]: string } = {
-                    'minted': 'green',
-                    'transferred': 'blue',
-                    'deposited': 'orange',
-                    'received': 'purple'
-                };
-                return <Badge color={colorMap[action] || 'default'} text={action} />;
-            },
+            title: 'Minted Count',
+            dataIndex: 'totalMinted',
+            key: 'totalMinted',
+            render: (count: number) => (
+                <Statistic value={count} suffix="items" valueStyle={{ fontSize: '16px' }} />
+            ),
+            sorter: (a: NFTStat, b: NFTStat) => a.totalMinted - b.totalMinted,
         },
         {
-            title: 'Time',
-            dataIndex: 'timestamp',
-            key: 'timestamp',
-            render: (timestamp: string) => new Date(timestamp).toLocaleString(),
+            title: 'Requirements',
+            dataIndex: 'requiredRecords',
+            key: 'requiredRecords',
+            render: (records: number) => 
+                records > 0 ? `${records} records` : 'Special conditions'
         },
+        {
+            title: 'Minting Progress',
+            key: 'progress',
+            render: (_: any, record: NFTStat) => {
+                // Assume each NFT type has a target minting count of 100
+                const targetCount = 100;
+                const percent = Math.min((record.totalMinted / targetCount) * 100, 100);
+                return (
+                    <Progress 
+                        percent={percent} 
+                        size="small" 
+                        format={() => `${record.totalMinted}/${targetCount}`}
+                    />
+                );
+            }
+        }
     ];
 
-    if (loading) {
-        return (
-            <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                <Spin size="large" />
-                <div style={{ marginTop: 16 }}>
-                    <Text>Loading NFT statistics...</Text>
-                </div>
-            </div>
-        );
-    }
-
-    if (!stats) {
-        return (
-            <Empty 
-                description="Unable to load statistics"
-                style={{ padding: '60px 0' }}
-            />
-        );
-    }
-
     return (
-        <div style={{ padding: '0 24px' }}>
-            {/* Overview Statistics */}
-            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                <Col xs={12} sm={6}>
+        <div>
+            {/* Overall Statistics Cards */}
+            <Row gutter={16} style={{ marginBottom: 24 }}>
+                <Col span={6}>
                     <Card>
                         <Statistic
                             title="Total Minted"
-                            value={stats.totalMinted}
+                            value={totalMinted}
                             prefix={<GiftOutlined style={{ color: '#1890ff' }} />}
-                            valueStyle={{ color: '#1890ff' }}
+                            suffix="NFTs"
                         />
                     </Card>
                 </Col>
-                <Col xs={12} sm={6}>
+                <Col span={6}>
                     <Card>
                         <Statistic
-                            title="Total Users"
-                            value={stats.totalUsers}
+                            title="Owners"
+                            value={totalUsers}
                             prefix={<UserOutlined style={{ color: '#52c41a' }} />}
-                            valueStyle={{ color: '#52c41a' }}
+                            suffix="wallets"
                         />
                     </Card>
                 </Col>
-                <Col xs={12} sm={6}>
+                <Col span={6}>
                     <Card>
                         <Statistic
                             title="Discount NFTs"
-                            value={stats.categoryStats.discount}
+                            value={discountNFTs.reduce((sum, nft) => sum + nft.totalMinted, 0)}
                             prefix={<PercentageOutlined style={{ color: '#722ed1' }} />}
-                            valueStyle={{ color: '#722ed1' }}
+                            suffix="items"
                         />
                     </Card>
                 </Col>
-                <Col xs={12} sm={6}>
+                <Col span={6}>
                     <Card>
                         <Statistic
                             title="Achievement NFTs"
-                            value={stats.categoryStats.achievement}
+                            value={achievementNFTs.reduce((sum, nft) => sum + nft.totalMinted, 0)}
                             prefix={<TrophyOutlined style={{ color: '#fa8c16' }} />}
-                            valueStyle={{ color: '#fa8c16' }}
+                            suffix="items"
                         />
                     </Card>
                 </Col>
             </Row>
 
-            <Row gutter={[24, 24]}>
-                {/* Popular NFTs */}
-                <Col xs={24} lg={12}>
-                    <Card 
-                        title={
-                            <Space>
-                                <StarOutlined style={{ color: '#faad14' }} />
-                                Popular NFTs
-                            </Space>
-                        }
-                        style={{ height: '100%' }}
-                    >
-                        {stats.popularNFTs.length > 0 ? (
-                            <div>
-                                {stats.popularNFTs.map((nft, index) => (
-                                    <div key={nft.id} style={{ marginBottom: 16 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                                            <Text strong>#{index + 1} {nft.name}</Text>
-                                            <Text>{nft.mintCount} mints</Text>
-                                        </div>
-                                        <Progress 
-                                            percent={nft.percentage} 
-                                            size="small"
-                                            strokeColor={{
-                                                '0%': '#108ee9',
-                                                '100%': '#87d068',
-                                            }}
-                                        />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <Empty description="No popular NFTs data" />
-                        )}
-                    </Card>
-                </Col>
-
-                {/* Recent Activity */}
-                <Col xs={24} lg={12}>
-                    <Card 
-                        title={
-                            <Space>
-                                <GiftOutlined style={{ color: '#1890ff' }} />
-                                Recent Activity
-                            </Space>
-                        }
-                        style={{ height: '100%' }}
-                    >
-                        {stats.recentActivity.length > 0 ? (
-                            <Table
-                                dataSource={stats.recentActivity}
-                                columns={activityColumns}
-                                pagination={{ pageSize: 5, size: 'small' }}
-                                size="small"
-                                rowKey="id"
-                            />
-                        ) : (
-                            <Empty description="No recent activity" />
-                        )}
-                    </Card>
-                </Col>
-            </Row>
-
-            {/* Category Distribution Chart */}
-            <Row style={{ marginTop: 24 }}>
-                <Col span={24}>
-                    <Card title="NFT Category Distribution">
-                        <Row gutter={48}>
-                            <Col span={12}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{
-                                        width: 120,
-                                        height: 120,
-                                        borderRadius: '50%',
-                                        background: 'linear-gradient(135deg, #722ed1 0%, #ad85e4 100%)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        margin: '0 auto 16px',
-                                        color: 'white',
-                                        fontSize: '24px',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        {stats.categoryStats.discount}
-                                    </div>
-                                    <Title level={4}>Discount Benefits</Title>
-                                    <Text type="secondary">
-                                        {((stats.categoryStats.discount / stats.totalMinted) * 100).toFixed(1)}%
-                                    </Text>
-                                </div>
-                            </Col>
-                            <Col span={12}>
-                                <div style={{ textAlign: 'center' }}>
-                                    <div style={{
-                                        width: 120,
-                                        height: 120,
-                                        borderRadius: '50%',
-                                        background: 'linear-gradient(135deg, #fa8c16 0%, #ffc069 100%)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        margin: '0 auto 16px',
-                                        color: 'white',
-                                        fontSize: '24px',
-                                        fontWeight: 'bold'
-                                    }}>
-                                        {stats.categoryStats.achievement}
-                                    </div>
-                                    <Title level={4}>Achievement Certificates</Title>
-                                    <Text type="secondary">
-                                        {((stats.categoryStats.achievement / stats.totalMinted) * 100).toFixed(1)}%
-                                    </Text>
-                                </div>
-                            </Col>
-                        </Row>
-                    </Card>
-                </Col>
-            </Row>
+            {/* Detailed Statistics Table */}
+            <Card 
+                title={
+                    <Space>
+                        <TrophyOutlined />
+                        <span>NFT Detailed Statistics</span>
+                    </Space>
+                }
+            >
+                <Table
+                    columns={columns}
+                    dataSource={stats}
+                    rowKey="id"
+                    loading={loading}
+                    pagination={false}
+                    size="middle"
+                />
+            </Card>
         </div>
     );
 }; 

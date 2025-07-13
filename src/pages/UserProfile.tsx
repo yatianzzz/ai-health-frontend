@@ -230,7 +230,7 @@ const UserProfile: React.FC = () => {
 
         <Divider />
 
-        <Title level={4}>激励与奖励</Title>
+        <Title level={4}>Award</Title>
         <Row gutter={[24, 24]}>
           <Col xs={24} sm={12} md={8}>
             <Card
@@ -247,20 +247,20 @@ const UserProfile: React.FC = () => {
               <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <GiftOutlined style={{ fontSize: 48, marginBottom: 16 }} />
                 <Title level={3} style={{ color: 'white', margin: 0 }}>
-                  NFT激励计划
+                  NFT Incentive Program
                 </Title>
                 <p style={{ color: 'rgba(255,255,255,0.8)', margin: '8px 0 0 0' }}>
-                  完成健康挑战获得专属NFT权益
+                  Complete health challenges to earn exclusive NFT benefits
                 </p>
               </div>
             </Card>
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
-              <Statistic
-                title="获得NFT"
+              <Statistic 
+                title="Earned NFTs"
                 value={0}
-                suffix="个"
+                suffix="items"
                 valueStyle={{ color: '#722ed1' }}
                 prefix={<GiftOutlined />}
               />
@@ -268,9 +268,9 @@ const UserProfile: React.FC = () => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
-              <Statistic
-                title="累计奖励"
-                value="0%"
+              <Statistic 
+                title="Total Rewards"
+                value="0%" 
                 valueStyle={{ color: '#f5222d' }}
                 prefix={<StarOutlined />}
               />

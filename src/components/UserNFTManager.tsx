@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Card, Tag, Space, Button, Modal, Descriptions, Typography, Input, Tooltip, message } from 'antd';
+import { Table, Card, Tag, Space, Button, Modal, Descriptions, Typography, Input, Tooltip, message, Badge } from 'antd';
 import { UserOutlined, SearchOutlined, EyeOutlined, DeleteOutlined, GiftOutlined } from '@ant-design/icons';
 import { availableNFTs } from '../services/nftService';
 
@@ -67,8 +67,8 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
 
     const handleDeleteUserNFT = (walletAddress: string, nftId: string) => {
         Modal.confirm({
-            title: '确认删除',
-            content: `确定要删除用户 ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)} 的 ${getNFTName(nftId)} NFT吗？`,
+            title: 'Confirm Deletion',
+            content: `Are you sure you want to delete the ${getNFTName(nftId)} NFT for user ${walletAddress.slice(0, 8)}...${walletAddress.slice(-8)}?`,
             onOk: () => {
                 try {
                     const key = `ownedNFTs_${walletAddress}`;
@@ -76,11 +76,11 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
                     const updatedNFTs = ownedNFTs.filter((id: string) => id !== nftId);
                     localStorage.setItem(key, JSON.stringify(updatedNFTs));
                     
-                    message.success('NFT删除成功');
+                    message.success('NFT deleted successfully');
                     fetchUserNFTData();
                     setDetailModalVisible(false);
                 } catch (error) {
-                    message.error('删除失败');
+                    message.error('Deletion failed');
                 }
             }
         });
@@ -102,7 +102,7 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
 
     const columns = [
         {
-            title: '钱包地址',
+            title: 'Wallet Address',
             dataIndex: 'walletAddress',
             key: 'walletAddress',
             render: (address: string) => (
@@ -115,18 +115,18 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
             ),
         },
         {
-            title: 'NFT数量',
+            title: 'NFT Count',
             dataIndex: 'totalNFTs',
             key: 'totalNFTs',
             sorter: (a: UserNFTData, b: UserNFTData) => a.totalNFTs - b.totalNFTs,
             render: (count: number) => (
                 <Tag color={count > 3 ? 'gold' : count > 1 ? 'blue' : 'default'}>
-                    {count} 个NFT
+                    {count} NFTs
                 </Tag>
             ),
         },
         {
-            title: 'NFT类型',
+            title: 'NFT Types',
             dataIndex: 'nfts',
             key: 'nfts',
             render: (nfts: string[]) => (
@@ -143,23 +143,23 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
                         );
                     })}
                     {nfts.length > 3 && (
-                        <Tag>+{nfts.length - 3} 更多</Tag>
+                        <Tag>+{nfts.length - 3} more</Tag>
                     )}
                 </Space>
             ),
         },
         {
-            title: '操作',
-            key: 'action',
-            render: (_: any, record: UserNFTData) => (
+            title: 'Actions',
+            key: 'actions',
+            render: (record: UserNFTData) => (
                 <Space>
                     <Button
                         type="primary"
-                        size="small"
                         icon={<EyeOutlined />}
+                        size="small"
                         onClick={() => handleViewDetails(record)}
                     >
-                        查看详情
+                        View Details
                     </Button>
                 </Space>
             ),
@@ -167,24 +167,19 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
     ];
 
     return (
-        <div>
-            <Card 
-                title={
-                    <Space>
-                        <UserOutlined />
-                        <span>用户NFT管理</span>
-                    </Space>
-                }
-                extra={
+        <div style={{ padding: '20px' }}>
+            <Card>
+                <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Title level={3}>User NFT Management</Title>
                     <Search
-                        placeholder="搜索钱包地址"
+                        placeholder="Search wallet address"
+                        allowClear
+                        style={{ width: 300 }}
                         value={searchText}
                         onChange={(e) => setSearchText(e.target.value)}
-                        style={{ width: 300 }}
-                        allowClear
                     />
-                }
-            >
+                </div>
+
                 <Table
                     columns={columns}
                     dataSource={filteredData}
@@ -194,55 +189,58 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
                         pageSize: 10,
                         showSizeChanger: true,
                         showQuickJumper: true,
-                        showTotal: (total) => `共 ${total} 个用户`,
+                        showTotal: (total, range) => 
+                            `${range[0]}-${range[1]} of ${total} users`
                     }}
                 />
             </Card>
 
-            {/* 用户详情模态框 */}
             <Modal
                 title={
                     <Space>
                         <UserOutlined />
-                        <span>用户NFT详情</span>
+                        User NFT Details
                     </Space>
                 }
                 open={detailModalVisible}
                 onCancel={() => setDetailModalVisible(false)}
-                footer={null}
+                footer={[
+                    <Button key="close" onClick={() => setDetailModalVisible(false)}>
+                        Close
+                    </Button>
+                ]}
                 width={800}
             >
                 {selectedUser && (
                     <div>
-                        <Descriptions title="用户信息" bordered column={1} style={{ marginBottom: 24 }}>
-                            <Descriptions.Item label="钱包地址">
+                        <Descriptions title="User Information" bordered column={2} style={{ marginBottom: 24 }}>
+                            <Descriptions.Item label="Wallet Address" span={2}>
                                 <Text code>{selectedUser.walletAddress}</Text>
                             </Descriptions.Item>
-                            <Descriptions.Item label="NFT总数">
-                                <Tag color="blue">{selectedUser.totalNFTs} 个</Tag>
+                            <Descriptions.Item label="Total NFTs">
+                                <Badge count={selectedUser.totalNFTs} showZero color="blue" />
+                            </Descriptions.Item>
+                            <Descriptions.Item label="Types">
+                                <Space wrap>
+                                    {Array.from(new Set(selectedUser.nfts.map(nftId => getNFTCategory(nftId)))).map(category => (
+                                        <Tag key={category} color={category === 'discount' ? 'purple' : 'orange'}>
+                                            {category === 'discount' ? 'Discount Benefits' : 'Achievement Certificates'}
+                                        </Tag>
+                                    ))}
+                                </Space>
                             </Descriptions.Item>
                         </Descriptions>
 
-                        <Card title="拥有的NFT" size="small">
-                            <Space direction="vertical" style={{ width: '100%' }}>
+                        <Card title="Owned NFTs" style={{ marginTop: 16 }}>
+                            <Space direction="vertical" size="middle" style={{ width: '100%' }}>
                                 {selectedUser.nfts.map(nftId => {
                                     const nft = availableNFTs.find(n => n.id === nftId);
                                     return (
-                                        <Card 
-                                            key={nftId} 
-                                            type="inner" 
+                                        <Card
+                                            key={nftId}
                                             size="small"
-                                            extra={
-                                                <Tooltip title="删除此NFT">
-                                                    <Button
-                                                        type="text"
-                                                        danger
-                                                        size="small"
-                                                        icon={<DeleteOutlined />}
-                                                        onClick={() => handleDeleteUserNFT(selectedUser.walletAddress, nftId)}
-                                                    />
-                                                </Tooltip>
-                                            }
+                                            hoverable
+                                            style={{ backgroundColor: '#fafafa' }}
                                         >
                                             <Space>
                                                 <GiftOutlined />
@@ -252,7 +250,7 @@ export const UserNFTManager: React.FC<UserNFTManagerProps> = ({ refreshTrigger }
                                                     <Text type="secondary">{nft?.description}</Text>
                                                     <br />
                                                     <Tag color={nft?.category === 'discount' ? 'purple' : 'orange'}>
-                                                        {nft?.category === 'discount' ? '折扣权益' : '成就证书'}
+                                                        {nft?.category === 'discount' ? 'Discount Benefits' : 'Achievement Certificate'}
                                                     </Tag>
                                                 </div>
                                             </Space>
