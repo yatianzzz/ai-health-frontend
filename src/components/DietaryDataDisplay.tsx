@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag, Select, DatePicker, Tabs } from 'antd';
 import { CalendarOutlined, FireOutlined, AppleOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import { ColumnProps } from 'antd/es/table';
-import { Line, Pie } from '@ant-design/charts';
+import { Line, Pie } from '@ant-design/plots';
 import { useDiet } from '../context/DietContext';
 // import {
 //   getFoodCategoriesData,
@@ -12,7 +12,7 @@ import { useDiet } from '../context/DietContext';
 //   CalorieComparisonData,
 //   DailySummaryData
 // } from '../services/dietAPI';
-import { getDietaryRecords } from '../services/dietAPI';
+import { getDietaryRecords, getDailySummaryData } from '../services/dietAPI';
 import { getAllExerciseRecords } from '../services/exerciseAPI';
 import dayjs from 'dayjs';
 const { RangePicker } = DatePicker;
@@ -152,41 +152,23 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   const [dailySummaryData, setDailySummaryData] = useState<any | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
-  // Fetch stats data
-  // const fetchStatsData = async () => {
-  //   setStatsLoading(true);
-  //   try {
-  //     const [categoriesResponse, comparisonResponse, summaryResponse] = await Promise.all([
-  //       getFoodCategoriesData(),
-  //       getCalorieComparisonChartData(),
-  //       getDailySummaryData()
-  //     ]);
-
-  //     if (categoriesResponse.code === 200) {
-  //       setFoodCategoriesData(categoriesResponse.data || []);
-  //     }
-
-  //     if (comparisonResponse.code === 200) {
-  //       setCalorieComparisonData(comparisonResponse.data || []);
-  //     }
-
-  //     if (summaryResponse.code === 200) {
-  //       setDailySummaryData(summaryResponse.data);
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching stats data:', error);
-  //   } finally {
-  //     setStatsLoading(false);
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   if (dietaryRecords.length === 0) {
-  //     fetchDietaryRecords();
-  //   }
-  //   // Fetch stats data when component mounts
-  //   fetchStatsData();
-  // }, [dietaryRecords.length, fetchDietaryRecords]);
+  // 获取实际每日汇总数据
+  useEffect(() => {
+    async function fetchSummary() {
+      setStatsLoading(true);
+      try {
+        const res = await getDailySummaryData();
+        if (res.code === 200) {
+          setDailySummaryData(res.data);
+        }
+      } catch (e) {
+        setDailySummaryData(null);
+      } finally {
+        setStatsLoading(false);
+      }
+    }
+    fetchSummary();
+  }, []);
 
   // 2. dietaryRecords 加载后，批量加载所有 foodItems
   useEffect(() => {
@@ -333,8 +315,10 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   const categoryData = useMemo(() => {
     const map: Record<string, number> = {};
     foodItems.forEach(item => {
-      if (!map[item.category]) map[item.category] = 0;
-      map[item.category] += item.calories;
+      if (item.category && item.category !== 'undefined') {
+        if (!map[item.category]) map[item.category] = 0;
+        map[item.category] += item.calories;
+      }
     });
     return Object.entries(map).map(([type, value]) => ({ type, value }));
   }, [foodItems]);
@@ -369,13 +353,18 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   }), [calorieData]);
 
   
+  // 计算总热量用于百分比
+  const totalCategoryValue = useMemo(() => categoryData.reduce((sum, item) => sum + (item.value || 0), 0), [categoryData]);
+
   const pieConfig = useMemo(() => ({
     data: categoryData,
     angleField: 'value',
     colorField: 'type',
-    radius: 0.8,
+    radius: 0.9,
     label: {
-      content: '1',
+      text: (datum: { type: string; value: number }) => `${datum.type}: ${totalCategoryValue ? ((datum.value / totalCategoryValue) * 100).toFixed(0) : 0}%`,
+      // position: 'outside',
+      autoRotate: true,
       style: {
         textAlign: 'center',
         fontSize: 14,
@@ -387,10 +376,13 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
       },
     ],
     legend: {
-      layout: 'horizontal',
-      position: 'bottom',
+      color: {
+        title: false,
+        position: 'top',
+        rowPadding: 5,
+      },
     },
-  }), [categoryData]);
+  }), [categoryData, totalCategoryValue]);
 
   return (
     <div>
