@@ -49,11 +49,11 @@ export interface ApiResponse<T> {
     data: T;
 }
 
-// Health management related NFT list
+// 健康管理相关的NFT列表
 export const availableNFTs: NFT[] = [
     {
         id: '7R5percent',
-        name: '7 Records 5% Discount Card',
+        name: '5% Discount Card for 7 Records',
         frontImage: '/7R5percent/front.png',
         backImage: '/7R5percent/back.png',
         description: 'Complete 7 health records (exercise + diet) to get 5% purchase discount. Front shows record progress, back shows discount benefits.',
@@ -66,7 +66,7 @@ export const availableNFTs: NFT[] = [
     },
     {
         id: '7R10percent',
-        name: '7 Records 10% Discount Card',
+        name: '10% Discount Card for 7 Records',
         frontImage: '/7R10percent/front.png',
         backImage: '/7R10percent/back.png',
         description: 'Complete 7 quality health records (exercise + diet) to get 10% purchase discount. Front shows record progress, back shows discount benefits.',
@@ -79,10 +79,10 @@ export const availableNFTs: NFT[] = [
     },
     {
         id: '30R8percent',
-        name: '30 Records 8% Discount Card',
+        name: '8% Discount Card for 30 Records',
         frontImage: '/30R8percent/front.png',
         backImage: '/30R8percent/back.png',
-        description: 'Complete 30 consistent health records (exercise + diet) to get 8% purchase discount. Front shows record progress, back shows discount benefits.',
+        description: 'Complete 30 continuous health records (exercise + diet) to get 8% purchase discount. Front shows record progress, back shows discount benefits.',
         progress: '0/30 records completed',
         isOwned: false,
         category: 'discount',
@@ -92,7 +92,7 @@ export const availableNFTs: NFT[] = [
     },
     {
         id: '30R10percent',
-        name: '30 Records 10% Discount Card',
+        name: '10% Discount Card for 30 Records',
         frontImage: '/30R10percent/front.png',
         backImage: '/30R10percent/back.png',
         description: 'Complete 30 high-quality health records (exercise + diet) to get 10% purchase discount. Front shows record progress, back shows discount benefits.',
@@ -108,8 +108,8 @@ export const availableNFTs: NFT[] = [
         name: 'Diet Master',
         frontImage: '/regularDiet/front.png',
         backImage: '/regularDiet/back.png',
-        description: 'Complete 30 dietary records, master regular eating habits, and get nutrition expert certification. Front shows dietary habit tracking, back shows professional certification.',
-        progress: '0/30 dietary records completed',
+        description: 'Complete 30 diet records to master regular eating habits and get nutrition expert certification. Front shows diet habit tracking, back shows professional certification.',
+        progress: '0/30 diet records completed',
         isOwned: false,
         category: 'achievement',
         requiredRecords: 30,
@@ -121,7 +121,7 @@ export const availableNFTs: NFT[] = [
         name: 'Exercise Master',
         frontImage: '/PowerKing/front.png',
         backImage: '/PowerKing/back.png',
-        description: 'Complete 30 exercise records, reach top fitness level, and get the Exercise Master title. Front shows strength training progress, back shows royal honor.',
+        description: 'Complete 30 exercise records to reach top fitness level and earn the Exercise Master title. Front shows strength training progress, back shows royal honor.',
         progress: '0/30 exercise records completed',
         isOwned: false,
         category: 'achievement',
@@ -164,10 +164,10 @@ export class NFTService {
             
             if (response.data.code === 200) {
                 const activities = response.data.data;
-                console.log(`Retrieved ${activities.length} user activity records:`, activities);
+                console.log(`Fetched ${activities.length} user activity records:`, activities);
                 return activities;
             } else {
-                throw new Error(response.data.message || 'Failed to get user activity records');
+                throw new Error(response.data.message || 'Failed to fetch user activity records');
             }
         } catch (error: any) {
             console.error('Error fetching user activities:', error?.message || 'Unknown error');
@@ -198,10 +198,10 @@ export class NFTService {
             
             if (response.data.code === 200) {
                 const records = response.data.data;
-                console.log(`Retrieved ${records.length} dietary records:`, records);
+                console.log(`Fetched ${records.length} dietary records:`, records);
                 return records;
             } else {
-                throw new Error(response.data.message || 'Failed to get dietary records');
+                throw new Error(response.data.message || 'Failed to fetch dietary records');
             }
         } catch (error: any) {
             console.error('Error fetching user dietary records:', error?.message || 'Unknown error');
@@ -210,7 +210,7 @@ export class NFTService {
         }
     }
 
-    // Check NFT eligibility
+    // 检查NFT获得资格
     async checkNFTEligibility(nftId: string): Promise<boolean> {
         try {
             const nft = availableNFTs.find(n => n.id === nftId);
@@ -225,24 +225,24 @@ export class NFTService {
             // For 7R and 30R type NFTs (discount cards), check total exercise + diet records
             if (nft.id.includes('R')) {
                 const totalRecords = userActivities.length + userDietaryRecords.length;
-                console.log(`${nft.id} discount card check: required ${requiredRecords} records, exercise ${userActivities.length} + diet ${userDietaryRecords.length} = total ${totalRecords} records`);
+                console.log(`${nft.id} discount card check: needs ${requiredRecords} records, exercise ${userActivities.length} + diet ${userDietaryRecords.length} = total ${totalRecords} records`);
                 return totalRecords >= requiredRecords;
             }
 
-            // For achievement certificate NFTs, check specific type records
+            // For achievement certificate NFTs, check specific type of records
             if (nft.id === 'regularDiet') {
-                // Diet Master: requires 30 dietary records
-                console.log(`Diet Master check: requires ${requiredRecords} dietary records, currently has ${userDietaryRecords.length} records`);
+                // Diet King: needs 30 diet records
+                console.log(`Diet King check: needs ${requiredRecords} diet records, currently has ${userDietaryRecords.length} records`);
                 return userDietaryRecords.length >= requiredRecords;
             }
 
             if (nft.id === 'PowerKing') {
-                // Exercise Master: requires 30 exercise records
-                console.log(`Exercise Master check: requires ${requiredRecords} exercise records, currently has ${userActivities.length} records`);
+                // Exercise King: needs 30 exercise records
+                console.log(`Exercise King check: needs ${requiredRecords} exercise records, currently has ${userActivities.length} records`);
                 return userActivities.length >= requiredRecords;
             }
 
-            // Other types of NFTs, return false for now
+            // Other types of NFTs, temporarily return false
             return false;
         } catch (error: any) {
             console.error('Error checking NFT eligibility:', error?.message || 'Unknown error');
@@ -250,12 +250,12 @@ export class NFTService {
         }
     }
 
-    // Query user's NFTs
+    // 查询用户拥有的NFT
     async getUserNFTs(walletAddress: string): Promise<string[]> {
         try {
             const userPublicKey = new PublicKey(walletAddress);
-            // This should call the actual on-chain query
-            // For now, return mock data, will need to connect to smart contract for actual deployment
+            // 这里应该调用实际的链上查询
+            // 暂时返回模拟数据，实际部署时需要连接智能合约
             const mockOwnedNFTs = localStorage.getItem(`ownedNFTs_${walletAddress}`);
             return mockOwnedNFTs ? JSON.parse(mockOwnedNFTs) : [];
         } catch (error: any) {
@@ -264,23 +264,23 @@ export class NFTService {
         }
     }
 
-    // Mint NFT to specified address
+    // Mint NFT到指定地址
     async mintNFT(recipientAddress: string, nftId: string): Promise<boolean> {
         try {
-            // Validate NFT ID
+            // 验证NFT ID是否有效
             const nftExists = availableNFTs.some(nft => nft.id === nftId);
             if (!nftExists) {
                 throw new Error(`NFT ID "${nftId}" does not exist`);
             }
 
-            // Check if user is eligible to get this NFT
+            // 检查用户是否有资格获得这个NFT
             const isEligible = await this.checkNFTEligibility(nftId);
             if (!isEligible) {
                 throw new Error('You have not met the conditions to obtain this NFT');
             }
 
-            // Temporarily use localStorage to simulate minting process
-            // For actual deployment, call smart contract
+            // 暂时使用localStorage模拟mint过程
+            // 实际部署时需要调用智能合约
             const existingNFTs = localStorage.getItem(`ownedNFTs_${recipientAddress}`);
             const ownedNFTs = existingNFTs ? JSON.parse(existingNFTs) : [];
             
@@ -297,18 +297,18 @@ export class NFTService {
         }
     }
 
-    // Admin version of Mint NFT - does not check eligibility conditions
+    // 管理员版本的Mint NFT - 不检查资格条件
     async adminMintNFT(recipientAddress: string, nftId: string): Promise<boolean> {
         try {
-            // Validate NFT ID
+            // 验证NFT ID是否有效
             const nftExists = availableNFTs.some(nft => nft.id === nftId);
             if (!nftExists) {
                 throw new Error(`NFT ID "${nftId}" does not exist`);
             }
 
-            // Admin minting does not require eligibility check
-            // Temporarily use localStorage to simulate minting process
-            // For actual deployment, call smart contract
+            // 管理员铸造不需要检查资格条件
+            // 暂时使用localStorage模拟mint过程
+            // 实际部署时需要调用智能合约
             const existingNFTs = localStorage.getItem(`ownedNFTs_${recipientAddress}`);
             const ownedNFTs = existingNFTs ? JSON.parse(existingNFTs) : [];
             
@@ -325,7 +325,7 @@ export class NFTService {
         }
     }
 
-    // Get all NFTs, and mark owned NFTs and eligibility status
+    // 获取所有NFT，并标记用户拥有的NFT和资格状态
     async getAllNFTsWithOwnership(walletAddress: string): Promise<NFT[]> {
         try {
             const ownedNFTs = await this.getUserNFTs(walletAddress);
@@ -344,21 +344,21 @@ export class NFTService {
                 let progressText = '';
 
                 if (nft.id.includes('R')) {
-                    // Discount NFT: total exercise + diet records
+                    // Discount card NFT: total exercise + diet records
                     currentRecords = userActivities.length + userDietaryRecords.length;
                     isEligible = currentRecords >= (nft.requiredRecords || 0);
                     progressText = isOwned 
                         ? 'Obtained' 
                         : `${currentRecords}/${nft.requiredRecords} records completed (exercise ${userActivities.length} + diet ${userDietaryRecords.length})`;
                 } else if (nft.id === 'regularDiet') {
-                    // Diet Master: only count dietary records
+                    // Diet King: only count diet records
                     currentRecords = userDietaryRecords.length;
                     isEligible = currentRecords >= (nft.requiredRecords || 0);
                     progressText = isOwned 
                         ? 'Obtained' 
-                        : `${currentRecords}/${nft.requiredRecords} dietary records completed`;
+                        : `${currentRecords}/${nft.requiredRecords} diet records completed`;
                 } else if (nft.id === 'PowerKing') {
-                    // Exercise Master: only count exercise records
+                    // Exercise King: only count exercise records
                     currentRecords = userActivities.length;
                     isEligible = currentRecords >= (nft.requiredRecords || 0);
                     progressText = isOwned 
@@ -368,10 +368,10 @@ export class NFTService {
                     // Other types of NFTs
                     currentRecords = 0;
                     isEligible = false;
-                    progressText = nft.progress || 'Conditions not yet open';
+                    progressText = nft.progress || 'Conditions not yet available';
                 }
                 
-                console.log(`NFT ${nft.id}: requires ${nft.requiredRecords} records, currently has ${currentRecords}, eligibility status: ${isEligible}`);
+                console.log(`NFT ${nft.id}: requires ${nft.requiredRecords} records, currently has ${currentRecords} records, eligibility status: ${isEligible}`);
                 
                 return {
                     ...nft,
@@ -387,7 +387,7 @@ export class NFTService {
         }
     }
 
-    // Filter NFTs by category
+    // 根据类别筛选NFT
     filterNFTsByCategory(nfts: NFT[], category: string): NFT[] {
         switch (category) {
             case 'all':
@@ -401,24 +401,24 @@ export class NFTService {
         }
     }
 
-    // Integrate with health management system: update NFT status based on user health data
+    // 与健康管理系统集成：根据用户健康数据更新NFT状态
     updateNFTProgressByHealthData(userHealthData: any): void {
-        // Here you can update the progress of NFTs based on the user's health data
-        // For example, update the status of corresponding NFTs based on continuous exercise days, dietary records, etc.
+        // 这里可以根据用户的健康数据更新NFT的进度
+        // 比如根据连续运动天数、饮食记录等来更新对应的NFT状态
         console.log('Updating NFT progress based on health data:', userHealthData);
     }
 
-    // Wallet interaction functions - deposit NFT to chain
+    // 钱包交互功能 - 存入NFT到链上
     async depositNFTToChain(nftId: string, walletAddress: string): Promise<boolean> {
         try {
-            // Check if user owns this NFT
+            // 检查用户是否拥有这个NFT
             const ownedNFTs = await this.getUserNFTs(walletAddress);
             if (!ownedNFTs.includes(nftId)) {
-                throw new Error('You do not own this NFT');
+                throw new Error('您不拥有此NFT');
             }
 
-            // For actual deployment, call smart contract to deposit NFT to chain
-            // Temporarily use simulation
+            // 实际部署时需要调用智能合约来存入NFT到链上
+            // 这里暂时使用模拟方式
             const chainNFTs = localStorage.getItem(`chainNFTs_${walletAddress}`);
             const chainNFTList = chainNFTs ? JSON.parse(chainNFTs) : [];
             
@@ -435,10 +435,10 @@ export class NFTService {
         }
     }
 
-    // Wallet interaction functions - receive NFT from chain
+    // 钱包交互功能 - 从链上接收NFT
     async receiveNFTFromChain(nftId: string, walletAddress: string): Promise<boolean> {
         try {
-            // Check if NFT is on the chain
+            // 检查链上是否有这个NFT
             const chainNFTs = localStorage.getItem(`chainNFTs_${walletAddress}`);
             const chainNFTList = chainNFTs ? JSON.parse(chainNFTs) : [];
             
@@ -446,8 +446,8 @@ export class NFTService {
                 throw new Error('NFT not found on chain');
             }
 
-            // For actual deployment, call smart contract to receive NFT from chain
-            // Temporarily use simulation
+            // 实际部署时需要调用智能合约从链上接收NFT
+            // 这里暂时使用模拟方式
             const ownedNFTs = localStorage.getItem(`ownedNFTs_${walletAddress}`);
             const ownedNFTList = ownedNFTs ? JSON.parse(ownedNFTs) : [];
             
@@ -464,11 +464,11 @@ export class NFTService {
         }
     }
 
-    // Get list of NFTs on the chain
+    // 获取链上NFT列表
     async getChainNFTs(walletAddress: string): Promise<string[]> {
         try {
-            // For actual deployment, call smart contract to query NFTs on the chain
-            // Temporarily use simulation
+            // 实际部署时需要调用智能合约查询链上NFT
+            // 这里暂时使用模拟方式
             const chainNFTs = localStorage.getItem(`chainNFTs_${walletAddress}`);
             return chainNFTs ? JSON.parse(chainNFTs) : [];
         } catch (error: any) {
@@ -477,17 +477,17 @@ export class NFTService {
         }
     }
 
-    // Transfer NFT to another address
+    // 转移NFT到其他地址
     async transferNFT(nftId: string, fromAddress: string, toAddress: string): Promise<boolean> {
         try {
-            // Check if sender owns this NFT
+            // 检查发送者是否拥有这个NFT
             const ownedNFTs = await this.getUserNFTs(fromAddress);
             if (!ownedNFTs.includes(nftId)) {
-                throw new Error('You do not own this NFT');
+                throw new Error('您不拥有此NFT');
             }
 
-            // For actual deployment, call smart contract for transfer
-            // Temporarily use simulation
+            // 实际部署时需要调用智能合约进行转移
+            // 这里暂时使用模拟方式
             const fromNFTs = localStorage.getItem(`ownedNFTs_${fromAddress}`);
             const fromNFTList = fromNFTs ? JSON.parse(fromNFTs) : [];
             const updatedFromList = fromNFTList.filter((id: string) => id !== nftId);

@@ -58,10 +58,10 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
         setLoading(prev => ({ ...prev, [nftId]: true }));
         try {
             await nftService.mintNFT(walletAddress, nftId);
-            message.success('NFT obtained successfully!');
+            message.success('NFT claimed successfully!');
             onNFTMinted?.();
         } catch (error: any) {
-            message.error(error.message || 'Failed to obtain NFT');
+            message.error(error.message || 'Failed to claim NFT');
         } finally {
             setLoading(prev => ({ ...prev, [nftId]: false }));
         }
@@ -74,9 +74,9 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
             <Empty
                 description={
                     category === 'owned' 
-                        ? 'You haven\'t obtained any NFTs yet'
+                        ? 'You have not claimed any NFTs yet'
                         : category === 'unowned'
-                        ? 'All NFTs have been obtained!'
+                        ? 'All NFTs have been claimed!'
                         : 'No NFTs available'
                 }
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
@@ -89,8 +89,8 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
             <div style={{ marginBottom: 24 }}>
                 <Title level={4} style={{ color: '#1890ff' }}>
                     {category === 'all' && `All NFTs (${filteredNfts.length} items)`}
-                    {category === 'owned' && `Owned NFTs (${filteredNfts.length} items)`}
-                    {category === 'unowned' && `Not Owned NFTs (${filteredNfts.length} items)`}
+                    {category === 'owned' && `Claimed NFTs (${filteredNfts.length} items)`}
+                    {category === 'unowned' && `Unclaimed NFTs (${filteredNfts.length} items)`}
                 </Title>
             </div>
 
@@ -118,60 +118,66 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                                         height: '100%',
                                         objectFit: 'cover'
                                     }}
+                                    preview={false}
                                     fallback="data:image/png;base64,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"
                                 />
-
-                                {/* Status Badge */}
-                                <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+                                
+                                {/* 状态标识 */}
+                                <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 15 }}>
                                     {nft.isOwned ? (
                                         <Badge 
-                                            color="green" 
-                                            text="Owned"
-                                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '2px 8px', borderRadius: 4 }}
+                                            status="success" 
+                                            text="Claimed" 
+                                            style={{ backgroundColor: '#f6ffed', color: '#52c41a', padding: '4px 8px', borderRadius: 6 }}
                                         />
                                     ) : (
                                         <Badge 
-                                            color="default" 
-                                            text="Not Owned"
-                                            style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '2px 8px', borderRadius: 4 }}
+                                            status="default" 
+                                            text="Unclaimed" 
+                                            style={{ backgroundColor: '#fafafa', color: '#666', padding: '4px 8px', borderRadius: 6 }}
                                         />
                                     )}
                                 </div>
 
-                                {/* Category Badge */}
-                                <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 10 }}>
+                                {/* 类别标识 */}
+                                <div style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 15 }}>
                                     <Badge 
                                         color={nft.category === 'discount' ? 'purple' : 'orange'} 
                                         text={nft.category === 'discount' ? 'Discount' : 'Achievement'}
-                                        style={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', padding: '2px 8px', borderRadius: 4 }}
+                                        style={{ fontSize: 12 }}
                                     />
                                 </div>
 
-                                {/* Action Button Group - Only shown when owned */}
+                                {/* 操作按钮组 - 只在已获得时显示 */}
                                 {nft.isOwned && (
-                                    <div style={{ 
-                                        position: 'absolute', 
-                                        bottom: 8, 
-                                        right: 8, 
-                                        zIndex: 10,
-                                        display: 'flex',
-                                        gap: 8
-                                    }}>
-                                        <Button 
-                                            icon={<InfoCircleOutlined />}
-                                            size="small"
-                                            title="View Details"
-                                        >
-                                            Details
-                                        </Button>
-                                        <Button 
-                                            icon={<SwapOutlined />}
-                                            size="small"
-                                            title="Flip Card"
-                                            onClick={(e) => handleFlip(nft.id, e)}
-                                        >
-                                            Flip
-                                        </Button>
+                                    <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 15 }}>
+                                        <Space size={4}>
+                                            <Button
+                                                icon={<InfoCircleOutlined />}
+                                                size="small"
+                                                type="default"
+                                                style={{
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                                    border: '1px solid #d9d9d9'
+                                                }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCardClick(nft);
+                                                }}
+                                                title="View Details"
+                                            >
+                                                Details
+                                            </Button>
+                                            <Button
+                                                icon={<SwapOutlined />}
+                                                size="small"
+                                                type="primary"
+                                                onClick={(e) => handleFlip(nft.id, e)}
+                                                title="Flip Card"
+                                            >
+                                                Flip
+                                            </Button>
+                                        </Space>
                                     </div>
                                 )}
                             </div>
@@ -185,7 +191,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                                 </Text>
                             </div>
 
-                            {/* Full overlay for unowned state - covers entire card */}
+                            {/* 未获得状态的全覆盖层 - 覆盖整个卡片 */}
                             {!nft.isOwned && (
                                 <div style={{
                                     position: 'absolute',
@@ -241,7 +247,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                                                     handleMintNFT(nft.id);
                                                 }}
                                             >
-                                                Get Now
+                                                Claim Now
                                             </Button>
                                         ) : (
                                             <Button
@@ -251,7 +257,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                                                 disabled
                                                 style={{ backgroundColor: '#d9d9d9', borderColor: '#d9d9d9' }}
                                             >
-                                                Insufficient
+                                                Requirements Not Met
                                             </Button>
                                         )}
                                     </Space>
@@ -262,7 +268,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                 ))}
             </Row>
 
-            {/* NFT Details Modal */}
+            {/* NFT详情模态框 */}
             <Modal
                 title={
                     <Space>
@@ -284,7 +290,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                             loading={loading[selectedNFT.id]}
                             onClick={() => handleMintNFT(selectedNFT.id)}
                         >
-                            Get Now
+                            Claim Now
                         </Button>
                     ) : !selectedNFT?.isOwned ? (
                         <Button
@@ -293,7 +299,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                             disabled
                             icon={<GiftOutlined />}
                         >
-                            Insufficient
+                            Requirements Not Met
                         </Button>
                     ) : null
                 ]}
@@ -351,9 +357,9 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                             </Descriptions.Item>
                             <Descriptions.Item label="Status">
                                 {selectedNFT.isOwned ? (
-                                    <Badge status="success" text="Owned" />
+                                    <Badge status="success" text="Claimed" />
                                 ) : (
-                                    <Badge status="default" text="Not Owned" />
+                                    <Badge status="default" text="Unclaimed" />
                                 )}
                             </Descriptions.Item>
                             <Descriptions.Item label="Progress">
@@ -361,7 +367,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                             </Descriptions.Item>
                             {selectedNFT.requiredRecords && selectedNFT.requiredRecords > 0 && (
                                 <Descriptions.Item label="Requirements">
-                                    Complete {selectedNFT.requiredRecords} health records
+                                    Need to complete {selectedNFT.requiredRecords} health records
                                 </Descriptions.Item>
                             )}
                             {selectedNFT.currentRecords !== undefined && (
@@ -373,7 +379,7 @@ export const NFTGallery: React.FC<NFTGalleryProps> = ({
                                 {selectedNFT.isEligible ? (
                                     <Badge status="success" text="Eligible" />
                                 ) : (
-                                    <Badge status="warning" text="Insufficient" />
+                                    <Badge status="warning" text="Requirements Not Met" />
                                 )}
                             </Descriptions.Item>
                         </Descriptions>

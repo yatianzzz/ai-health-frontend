@@ -20,7 +20,7 @@ const { Title, Text, Paragraph } = Typography;
 
 require('@solana/wallet-adapter-react-ui/styles.css');
 
-// NFT Admin page core component
+// NFT Admin Page Core Component
 const NFTAdminCore: React.FC = () => {
     const { connected, publicKey } = useWallet();
     const { connection } = useConnection();
@@ -72,9 +72,9 @@ const NFTAdminCore: React.FC = () => {
                     <div style={{ textAlign: 'center', padding: '60px 0' }}>
                         <Title level={3} type="danger">Access Denied</Title>
                         <Paragraph>
-                            You don't have administrator privileges to access this page. Please contact the system administrator for proper permissions.
+                            You do not have administrator permission to access this page. Please contact the system administrator for appropriate permissions.
                         </Paragraph>
-                        <Text type="secondary">Current User: {username}</Text>
+                        <Text type="secondary">Current user: {username}</Text>
                     </div>
                 </Card>
             </div>
@@ -167,24 +167,24 @@ const NFTAdminCore: React.FC = () => {
                     <Text type="secondary">
                         Wallet Status: {connected 
                             ? `${publicKey?.toString().slice(0, 8)}...${publicKey?.toString().slice(-8)}`
-                            : 'Wallet Not Connected'
+                            : 'Not Connected'
                         }
                     </Text>
                 </Space>
             </Card>
 
-            {/* Alert */}
+            {/* Alert Message */}
             {!connected && (
                 <Alert
-                    message="Consider Connecting Wallet"
-                    description="Connect your Solana wallet for full management capabilities, including on-chain NFT operations."
+                    message="Wallet Connection Recommended"
+                    description="Connect your Solana wallet to access full management features, including on-chain NFT operations."
                     type="warning"
                     showIcon
                     style={{ marginBottom: 24 }}
                 />
             )}
 
-            {/* Management Area */}
+            {/* Management Functions Area */}
             <Card>
                 <Tabs
                     defaultActiveKey="mint"
@@ -218,7 +218,7 @@ const NFTAdminCore: React.FC = () => {
     );
 };
 
-// Main NFT Admin page component with wallet provider
+// Main NFT Admin page component with wallet providers
 const NFTAdmin: React.FC = () => {
     return (
         <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
