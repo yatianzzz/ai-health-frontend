@@ -88,7 +88,9 @@ export const getUserStats = async (): Promise<ApiResponse<UserComprehensiveData[
   }
 };
 
-export default {
+const userDataAPI = {
   getUserComprehensiveData,
   getUserStats
-}; 
+};
+
+export default userDataAPI; 

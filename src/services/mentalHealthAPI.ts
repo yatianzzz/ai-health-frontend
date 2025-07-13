@@ -220,7 +220,7 @@ export const getMentalHealthChatResponse = async (
   conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
 ): Promise<ApiResponse<ChatResponse>> => {
   console.log('💬 Getting mental health chat response for:', userMessage);
-  
+
   try {
     const systemPrompt = `You are Nikky, a friendly and empathetic AI mental health assistant. You are represented by a cute chick character and should respond in a warm, supportive manner.
 
@@ -240,7 +240,7 @@ Respond naturally as if you're having a friendly conversation. Keep responses co
     ];
 
     console.log('📤 Sending chat request to DeepSeek API...');
-    
+
     const response = await axios.post(
       DEEPSEEK_API_URL,
       {
@@ -259,13 +259,13 @@ Respond naturally as if you're having a friendly conversation. Keep responses co
     );
 
     console.log('📥 Received chat response from DeepSeek API:', response.status);
-    
+
     const content = response.data.choices[0].message.content;
     console.log('💬 AI Response:', content);
 
     // Analyze the response to determine mood
     const mood = analyzeResponseMood(content);
-    
+
     const chatResponse: ChatResponse = {
       message: content,
       mood,
@@ -284,11 +284,11 @@ Respond naturally as if you're having a friendly conversation. Keep responses co
 
   } catch (error) {
     console.error('❌ Error calling DeepSeek API for chat:', error);
-    
+
     if (axios.isAxiosError(error)) {
       console.error('📡 API Error details:', error.response?.data);
       console.error('📡 API Error status:', error.response?.status);
-      
+
       if (error.response?.status === 401) {
         return {
           code: 401,
@@ -299,7 +299,7 @@ Respond naturally as if you're having a friendly conversation. Keep responses co
           message: 'API authentication failed. Please check your API key.'
         };
       }
-      
+
       if (error.response?.status === 429) {
         return {
           code: 429,
@@ -313,7 +313,7 @@ Respond naturally as if you're having a friendly conversation. Keep responses co
     }
 
     console.log('🔄 Using fallback chat response due to API error');
-    
+
     // Return a fallback response
     const fallbackResponse: ChatResponse = {
       message: getFallbackChatResponse(userMessage),
@@ -330,19 +330,19 @@ Respond naturally as if you're having a friendly conversation. Keep responses co
 
 const analyzeResponseMood = (content: string): 'positive' | 'neutral' | 'concerned' | 'supportive' => {
   const lowerContent = content.toLowerCase();
-  
+
   if (lowerContent.includes('worry') || lowerContent.includes('concern') || lowerContent.includes('serious')) {
     return 'concerned';
   }
-  
+
   if (lowerContent.includes('great') || lowerContent.includes('wonderful') || lowerContent.includes('excellent')) {
     return 'positive';
   }
-  
+
   if (lowerContent.includes('support') || lowerContent.includes('help') || lowerContent.includes('listen')) {
     return 'supportive';
   }
-  
+
   return 'neutral';
 };
 
@@ -418,7 +418,7 @@ const getFallbackAdvice = (assessmentDetails: any[]): MentalHealthAdvice => {
       'Learn to say "no" and set healthy boundaries'
     ]
   };
-}; 
+};
 
 // User Mood Record Types
 export interface UserMoodRecord {
@@ -479,7 +479,7 @@ export const updateUserMood = async (id: number, data: { totalEvaluation: 'Stabl
     console.error('Error updating user mood:', error);
     throw error;
   }
-}; 
+};
 
 // 获取单条心情记录
 export const getUserMoodById = async (id: number | string): Promise<ApiResponse<UserMoodRecord>> => {
@@ -494,4 +494,4 @@ export const getUserMoodById = async (id: number | string): Promise<ApiResponse<
     console.error('Error fetching user mood by id:', error);
     throw error;
   }
-}; 
+};

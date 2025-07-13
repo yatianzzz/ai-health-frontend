@@ -245,7 +245,7 @@ const MentalHealthChat: React.FC = () => {
 
       // 调用DeepSeek API
       const response = await getMentalHealthChatResponse(inputValue, conversationHistory);
-      
+
       if (response.code === 200 && response.data) {
         setIsListening(false);
         setIsSpeaking(true);
@@ -256,7 +256,7 @@ const MentalHealthChat: React.FC = () => {
           isUser: false,
           timestamp: new Date()
         };
-        
+
         setMessages(prev => [...prev, aiResponse]);
         setIsLoading(false);
 
@@ -280,7 +280,7 @@ const MentalHealthChat: React.FC = () => {
     } catch (error) {
       console.error('Error calling AI API:', error);
       message.error('AI服务连接失败');
-      
+
       // 使用fallback响应
       const fallbackResponse: Message = {
         id: Date.now() + 1,
@@ -311,7 +311,7 @@ const MentalHealthChat: React.FC = () => {
           "Hello, I'd like to start a conversation",
           []
         );
-        
+
         if (response.code === 200 && response.data) {
           const greetingMessage: Message = {
             id: Date.now(),
