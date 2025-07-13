@@ -146,7 +146,7 @@ const UserProfile: React.FC = () => {
               <Statistic 
                 title="Age" 
                 value={userProfile.age} 
-                suffix="years" 
+                suffix="years old"
                 valueStyle={{ color: '#1890ff' }}
               />
             </Card>
@@ -229,13 +229,13 @@ const UserProfile: React.FC = () => {
         </Row>
 
         <Divider />
-        
+
         <Title level={4}>激励与奖励</Title>
         <Row gutter={[24, 24]}>
           <Col xs={24} sm={12} md={8}>
-            <Card 
-              bordered={false} 
-              style={{ 
+            <Card
+              bordered={false}
+              style={{
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                 color: 'white',
                 cursor: 'pointer',
@@ -257,9 +257,9 @@ const UserProfile: React.FC = () => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
-              <Statistic 
-                title="获得NFT" 
-                value={0} 
+              <Statistic
+                title="获得NFT"
+                value={0}
                 suffix="个"
                 valueStyle={{ color: '#722ed1' }}
                 prefix={<GiftOutlined />}
@@ -268,9 +268,9 @@ const UserProfile: React.FC = () => {
           </Col>
           <Col xs={24} sm={12} md={8}>
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
-              <Statistic 
-                title="累计奖励" 
-                value="0%" 
+              <Statistic
+                title="累计奖励"
+                value="0%"
                 valueStyle={{ color: '#f5222d' }}
                 prefix={<StarOutlined />}
               />

@@ -4,14 +4,17 @@ import { CalendarOutlined, FireOutlined, AppleOutlined, ArrowUpOutlined, ArrowDo
 import { ColumnProps } from 'antd/es/table';
 import { Line, Pie } from '@ant-design/charts';
 import { useDiet } from '../context/DietContext';
-import {
-  getFoodCategoriesData,
-  getCalorieComparisonChartData,
-  getDailySummaryData,
-  FoodCategoryData,
-  CalorieComparisonData,
-  DailySummaryData
-} from '../services/dietAPI';
+// import {
+//   getFoodCategoriesData,
+//   getCalorieComparisonChartData,
+//   getDailySummaryData,
+//   FoodCategoryData,
+//   CalorieComparisonData,
+//   DailySummaryData
+// } from '../services/dietAPI';
+import { getDietaryRecords } from '../services/dietAPI';
+import { getAllExerciseRecords } from '../services/exerciseAPI';
+import dayjs from 'dayjs';
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -144,46 +147,46 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   const [activeChartTab, setActiveChartTab] = useState<string>('1');
 
   // New state for real data
-  const [foodCategoriesData, setFoodCategoriesData] = useState<FoodCategoryData[]>([]);
-  const [calorieComparisonData, setCalorieComparisonData] = useState<CalorieComparisonData[]>([]);
-  const [dailySummaryData, setDailySummaryData] = useState<DailySummaryData | null>(null);
+  const [foodCategoriesData, setFoodCategoriesData] = useState<any[]>([]);
+  const [calorieComparisonData, setCalorieComparisonData] = useState<any[]>([]);
+  const [dailySummaryData, setDailySummaryData] = useState<any | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
 
   // Fetch stats data
-  const fetchStatsData = async () => {
-    setStatsLoading(true);
-    try {
-      const [categoriesResponse, comparisonResponse, summaryResponse] = await Promise.all([
-        getFoodCategoriesData(),
-        getCalorieComparisonChartData(),
-        getDailySummaryData()
-      ]);
+  // const fetchStatsData = async () => {
+  //   setStatsLoading(true);
+  //   try {
+  //     const [categoriesResponse, comparisonResponse, summaryResponse] = await Promise.all([
+  //       getFoodCategoriesData(),
+  //       getCalorieComparisonChartData(),
+  //       getDailySummaryData()
+  //     ]);
 
-      if (categoriesResponse.code === 200) {
-        setFoodCategoriesData(categoriesResponse.data || []);
-      }
+  //     if (categoriesResponse.code === 200) {
+  //       setFoodCategoriesData(categoriesResponse.data || []);
+  //     }
 
-      if (comparisonResponse.code === 200) {
-        setCalorieComparisonData(comparisonResponse.data || []);
-      }
+  //     if (comparisonResponse.code === 200) {
+  //       setCalorieComparisonData(comparisonResponse.data || []);
+  //     }
 
-      if (summaryResponse.code === 200) {
-        setDailySummaryData(summaryResponse.data);
-      }
-    } catch (error) {
-      console.error('Error fetching stats data:', error);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
+  //     if (summaryResponse.code === 200) {
+  //       setDailySummaryData(summaryResponse.data);
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching stats data:', error);
+  //   } finally {
+  //     setStatsLoading(false);
+  //   }
+  // };
 
-  useEffect(() => {
-    if (dietaryRecords.length === 0) {
-      fetchDietaryRecords();
-    }
-    // Fetch stats data when component mounts
-    fetchStatsData();
-  }, [dietaryRecords.length, fetchDietaryRecords]);
+  // useEffect(() => {
+  //   if (dietaryRecords.length === 0) {
+  //     fetchDietaryRecords();
+  //   }
+  //   // Fetch stats data when component mounts
+  //   fetchStatsData();
+  // }, [dietaryRecords.length, fetchDietaryRecords]);
 
   // 2. dietaryRecords 加载后，批量加载所有 foodItems
   useEffect(() => {
@@ -218,9 +221,10 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
   }, [foodItems, dietaryRecords]);
 
   const filteredFoodRecords = useMemo(() => 
-    selectedMealType === 'all' 
+    (selectedMealType === 'all' 
       ? mergedFoodRecords 
-      : mergedFoodRecords.filter(record => record.mealType === selectedMealType),
+      : mergedFoodRecords.filter(record => record.mealType === selectedMealType)
+    ).slice().reverse(),
     [selectedMealType, mergedFoodRecords]
   );
 
@@ -275,26 +279,78 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
 
   
   // Use real data instead of mock data
-  const calorieData = useMemo(() => calorieComparisonData, [calorieComparisonData]);
+  // const calorieData = useMemo(() => calorieComparisonData, [calorieComparisonData]);
+
+  const [calorieData, setCalorieData] = useState<{ date: Date; value: number; category: string }[]>([]);
+  console.log('calorieData', calorieData);
+
+  useEffect(() => {
+    async function fetchData() {
+      // 1. 获取饮食记录
+      const dietRes = await getDietaryRecords();
+      console.log('dietRes', dietRes);
+      const consumedMap: Record<string, number> = {};
+      dietRes.data.forEach(rec => {
+        if (!consumedMap[rec.recordDate]) consumedMap[rec.recordDate] = 0;
+        consumedMap[rec.recordDate] += rec.totalCalories;
+      });
+
+      // 2. 获取运动记录
+      const exerciseRes = await getAllExerciseRecords();
+      const burnedMap: Record<string, number> = {};
+      if (exerciseRes.data) {
+        exerciseRes.data.forEach(rec => {
+          const date = rec.activityDate.split('T')[0]; // 只取日期部分
+          if (!burnedMap[date]) burnedMap[date] = 0;
+          burnedMap[date] += rec.calories;
+        });
+      }
+
+      // 3. 合并数据
+      const allDates = Array.from(new Set([...Object.keys(consumedMap), ...Object.keys(burnedMap)]));
+      const merged = allDates.flatMap(date => [
+        { date: new Date(date), value: consumedMap[date] || 0, category: 'Consumed' },
+        { date: new Date(date), value: burnedMap[date] || 0, category: 'Burned' }
+      ]);
+      console.log('merged', merged);
+      merged.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setCalorieData(merged);
+    }
+    fetchData();
+  }, []);
+
+  // const categoryData = useMemo(() => {
+  //   return foodCategoriesData.filter(item =>
+  //     item &&
+  //     item.type &&
+  //     item.type !== 'undefined' &&
+  //     item.type.trim() !== '' &&
+  //     item.value &&
+  //     item.value > 0
+  //   );
+  // }, [foodCategoriesData]);
 
   const categoryData = useMemo(() => {
-    return foodCategoriesData.filter(item =>
-      item &&
-      item.type &&
-      item.type !== 'undefined' &&
-      item.type.trim() !== '' &&
-      item.value &&
-      item.value > 0
-    );
-  }, [foodCategoriesData]);
+    const map: Record<string, number> = {};
+    foodItems.forEach(item => {
+      if (!map[item.category]) map[item.category] = 0;
+      map[item.category] += item.calories;
+    });
+    return Object.entries(map).map(([type, value]) => ({ type, value }));
+  }, [foodItems]);
 
-  
+  console.log('categoryData', categoryData)
   const lineConfig = useMemo(() => ({
     data: calorieData,
     xField: 'date',
     yField: 'value',
     seriesField: 'category',
+    xAxis: {
+      type: 'time',
+      title: { text: 'Date' },
+    },
     yAxis: {
+      type: 'linear',
       title: {
         text: 'Calories (kcal)',
       },
@@ -319,7 +375,7 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
     colorField: 'type',
     radius: 0.8,
     label: {
-      content: '{percentage}',
+      content: '1',
       style: {
         textAlign: 'center',
         fontSize: 14,
@@ -335,14 +391,6 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
       position: 'bottom',
     },
   }), [categoryData]);
-
-  
-  // const filteredFoodRecords = useMemo(() => 
-  //   selectedMealType === 'all' 
-  //     ? mockFoodRecords 
-  //     : mockFoodRecords.filter(record => record.mealType === selectedMealType),
-  //   [selectedMealType]
-  // );
 
   return (
     <div>
