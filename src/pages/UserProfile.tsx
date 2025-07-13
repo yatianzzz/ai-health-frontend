@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Descriptions, Avatar, Button, Tag, Divider, Statistic, Typography, message } from 'antd';
-import { UserOutlined, EditOutlined, HeartOutlined, FireOutlined, LineChartOutlined, StarOutlined } from '@ant-design/icons';
+import { UserOutlined, EditOutlined, HeartOutlined, FireOutlined, LineChartOutlined, StarOutlined, GiftOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import DashboardLayout from '../layouts/DashboardLayout';
 import UserProfileForm from '../components/UserProfileForm';
@@ -11,6 +12,7 @@ const UserProfile: React.FC = () => {
   const { userProfile, updateUserProfile, hasShownForm, setHasShownForm, isLoading, refreshProfile } = useUser();
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
 
   // Refresh profile when component mounts to ensure latest data
   useEffect(() => {
@@ -220,6 +222,56 @@ const UserProfile: React.FC = () => {
                 title="Health Status" 
                 value="Sub-healthy" 
                 valueStyle={{ color: '#fa8c16' }}
+                prefix={<StarOutlined />}
+              />
+            </Card>
+          </Col>
+        </Row>
+
+        <Divider />
+        
+        <Title level={4}>激励与奖励</Title>
+        <Row gutter={[24, 24]}>
+          <Col xs={24} sm={12} md={8}>
+            <Card 
+              bordered={false} 
+              style={{ 
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              hoverable
+              onClick={() => navigate('/dashboard/nft-incentive')}
+            >
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                <GiftOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+                <Title level={3} style={{ color: 'white', margin: 0 }}>
+                  NFT激励计划
+                </Title>
+                <p style={{ color: 'rgba(255,255,255,0.8)', margin: '8px 0 0 0' }}>
+                  完成健康挑战获得专属NFT权益
+                </p>
+              </div>
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Card bordered={false} style={{ background: '#f9f9f9' }}>
+              <Statistic 
+                title="获得NFT" 
+                value={0} 
+                suffix="个"
+                valueStyle={{ color: '#722ed1' }}
+                prefix={<GiftOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={8}>
+            <Card bordered={false} style={{ background: '#f9f9f9' }}>
+              <Statistic 
+                title="累计奖励" 
+                value="0%" 
+                valueStyle={{ color: '#f5222d' }}
                 prefix={<StarOutlined />}
               />
             </Card>

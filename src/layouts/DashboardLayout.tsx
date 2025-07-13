@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Layout, Menu, Avatar, Badge, Input, Button, Dropdown, message } from 'antd';
 import { 
   HomeOutlined, AppleOutlined, FireOutlined, SmileOutlined,
-  SettingOutlined, UserOutlined, SearchOutlined, LogoutOutlined, DownOutlined
+  SettingOutlined, UserOutlined, SearchOutlined, LogoutOutlined, DownOutlined, GiftOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
@@ -30,6 +30,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     if (path.includes('/dashboard/diet')) return '2';
     if (path.includes('/dashboard/exercise')) return '3';
     if (path.includes('/dashboard/mental-health')) return '4';
+    if (path.includes('/dashboard/nft-incentive')) return '5';
+    if (path.includes('/dashboard/nft-admin')) return '6';
     return '1'; // Default to home
   };
   
@@ -46,6 +48,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
         break;
       case '4':
         navigate('/dashboard/mental-health');
+        break;
+      case '5':
+        navigate('/dashboard/nft-incentive');
+        break;
+      case '6':
+        navigate('/dashboard/nft-admin');
         break;
       default:
         navigate('/dashboard/home');
@@ -157,6 +165,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             { key: '2', icon: <AppleOutlined />, label: 'Dietary Suggestions' },
             { key: '3', icon: <FireOutlined />, label: 'Exercise Guidance' },
             { key: '4', icon: <SmileOutlined />, label: 'Mental Health Support' },
+            { key: '5', icon: <GiftOutlined />, label: 'NFT Incentive' },
+            { key: '6', icon: <SettingOutlined />, label: 'NFT Admin' },
           ]}
         />
       </Sider>

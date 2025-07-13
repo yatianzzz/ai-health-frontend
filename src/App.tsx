@@ -13,6 +13,8 @@ import Diet from './pages/Diet';
 import MentalHealthSupport from './pages/MentalHealthSupport';
 import MentalHealthAssessment from './pages/MentalHealthAssessment';
 import MentalHealthChat from './pages/MentalHealthChat';
+import NFTIncentive from './pages/NFTIncentive';
+import NFTAdmin from './pages/NFTAdmin';
 import './styles/global.css';
 import { UserProvider } from './context/UserContext';
 import { ExerciseProvider } from './context/ExerciseContext';
@@ -41,6 +43,8 @@ const App: React.FC = () => {
                   <Route path="/dashboard/mental-health/assessment/:category" element={<ProtectedRoute><MentalHealthAssessment /></ProtectedRoute>} />
                   <Route path="/dashboard/mental-health/chat" element={<ProtectedRoute><MentalHealthChat /></ProtectedRoute>} />
                   <Route path="/dashboard/system" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                  <Route path="/dashboard/nft-incentive" element={<ProtectedRoute><NFTIncentive /></ProtectedRoute>} />
+                  <Route path="/dashboard/nft-admin" element={<ProtectedRoute><NFTAdmin /></ProtectedRoute>} />
 
                   <Route path="/dashboard/profile" element={<ProtectedRoute><UserProfileWithLayout /></ProtectedRoute>} />
                   <Route path="/" element={<Navigate to="/dashboard/home" replace />} />
