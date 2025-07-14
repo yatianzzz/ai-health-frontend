@@ -3,6 +3,12 @@ import axios from 'axios';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEEPSEEK_API_KEY = process.env.REACT_APP_DEEPSEEK_API_KEY || 'sk-1555560e750b4bcb806c65171aa78f7e';
 
+// 运动咨询聊天响应接口
+export interface ExerciseChatResponse {
+  message: string;
+  suggestions?: string[];
+}
+
 export interface ExerciseRecommendation {
   'Strength Training': {
     'Upper Limbs': string;
@@ -365,6 +371,226 @@ const getWeeklySchedule = (isBeginnerLevel: boolean, isHighActivity: boolean, ag
       'Sunday': `Rest day with gentle yoga or stretching (15-20 min)`
     };
   }
+}
+
+// 运动咨询聊天API函数
+export const getExerciseChatResponse = async (
+  userMessage: string,
+  conversationHistory: Array<{ role: 'user' | 'assistant'; content: string }> = []
+): Promise<ExerciseChatResponse> => {
+  console.log('💬 Getting exercise chat response for:', userMessage);
+
+  try {
+    const systemPrompt = `You are an experienced fitness coach and exercise specialist. Your role is to:
+
+1. **Provide professional, personalized exercise advice and guidance**
+2. **Help users create workout plans** based on their fitness level and goals
+3. **Offer suggestions for proper form, techniques, and safety**
+4. **Recommend exercises** for different muscle groups and fitness objectives
+5. **Provide motivation and support** for users' fitness journeys
+6. **Answer questions about nutrition** as it relates to exercise performance
+7. **Suggest modifications** for injuries or physical limitations
+
+**Important formatting guidelines:**
+- Use **bold text** for key points and exercise names
+- Use *italics* for emphasis on important safety notes
+- Use numbered or bulleted lists for exercise routines and tips
+- Use \`code formatting\` for specific rep counts, weights, or durations
+- Break down complex information into clear, digestible sections
+
+Always respond in a friendly, supportive, and professional manner. Keep your responses practical and actionable. If a user asks about serious injuries or medical conditions, advise them to consult with a healthcare professional.
+
+**Format your responses using markdown** to make them easy to read and visually appealing. Respond naturally as if you're having a conversation with a client at the gym.`;
+
+    const messages = [
+      { role: 'system' as const, content: systemPrompt },
+      ...conversationHistory,
+      { role: 'user' as const, content: userMessage }
+    ];
+
+    console.log('📤 Sending exercise chat request to DeepSeek API...');
+
+    const response = await axios.post(
+      DEEPSEEK_API_URL,
+      {
+        model: 'deepseek-chat',
+        messages,
+        temperature: 0.7,
+        max_tokens: 600,
+        stream: false
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log('📥 Received exercise chat response from DeepSeek API:', response.status);
+
+    const content = response.data.choices[0].message.content;
+    console.log('💬 Exercise AI Response:', content);
+
+    const chatResponse: ExerciseChatResponse = {
+      message: content
+    };
+
+    return chatResponse;
+
+  } catch (error) {
+    console.error('❌ Error calling DeepSeek API for exercise chat:', error);
+
+    if (axios.isAxiosError(error)) {
+      console.error('📡 API Error details:', error.response?.data);
+      console.error('📡 API Error status:', error.response?.status);
+
+      if (error.response?.status === 401) {
+        throw new Error('API authentication failed. Please check your API key.');
+      }
+
+      if (error.response?.status === 429) {
+        throw new Error('API rate limit exceeded. Please try again later.');
+      }
+    }
+
+    console.log('🔄 Using fallback exercise chat response due to API error');
+
+    // 返回备用响应
+    return {
+      message: getFallbackExerciseChatResponse(userMessage)
+    };
+  }
+};
+
+// 备用运动咨询响应函数
+const getFallbackExerciseChatResponse = (userMessage: string): string => {
+  const message = userMessage.toLowerCase();
+  
+  if (message.includes('beginner') || message.includes('start') || message.includes('new')) {
+    return `## 🌟 Perfect Starting Point for Beginners!
+
+For beginners, I recommend starting with **bodyweight exercises**:
+
+- **Squats** - Build lower body strength
+- **Push-ups** - Develop upper body and core
+- **Lunges** - Improve balance and leg strength
+
+### Getting Started
+- Start with \`2-3 sets\` of \`8-12 repetitions\`
+- *Focus on proper form rather than speed*
+- Take \`60-90 seconds\` rest between sets
+
+Remember: *Consistency beats intensity when starting out!*`;
+  }
+  
+  if (message.includes('frequency') || message.includes('how often') || message.includes('how many times')) {
+    return `## 📅 Optimal Exercise Frequency
+
+### **Weekly Exercise Guidelines:**
+- **Cardio**: \`150 minutes\` of moderate-intensity exercise per week
+- **Strength Training**: \`2-3 days\` per week
+- **Rest Days**: *Essential for recovery and muscle growth*
+
+### **Sample Weekly Schedule:**
+- **5 days**: \`30 minutes\` moderate exercise
+- **2-3 days**: Strength training
+- **1-2 days**: Complete rest or gentle stretching`;
+  }
+  
+  if (message.includes('diet') || message.includes('eat') || message.includes('nutrition')) {
+    return `## 🥗 Nutrition for Exercise Performance
+
+### **Key Nutritional Principles:**
+- **Protein**: \`0.8-1g per kg\` body weight for muscle recovery
+- **Complex Carbs**: Fuel for your workouts
+- **Hydration**: *Stay well-hydrated throughout the day*
+
+### **Meal Timing:**
+- **Pre-workout**: Balanced meal \`2-3 hours\` before
+- **Post-workout**: Protein-rich snack within \`30 minutes\`
+
+*Remember: Nutrition is 70% of your fitness journey!*`;
+  }
+  
+  if (message.includes('recovery') || message.includes('rest') || message.includes('sore') || message.includes('tired')) {
+    return `## 😴 Recovery is Just as Important!
+
+### **Essential Recovery Strategies:**
+- **Sleep**: \`7-9 hours\` of quality sleep
+- **Hydration**: Keep drinking water
+- **Gentle Movement**: Light stretching or yoga
+- **Active Recovery**: Easy walks on rest days
+
+### **Listen to Your Body:**
+*If you're very sore or tired, take an extra rest day. Your muscles grow during rest, not during the workout!*`;
+  }
+  
+  if (message.includes('weight loss') || message.includes('lose weight') || message.includes('burn fat')) {
+    return `## 🔥 Effective Weight Loss Strategy
+
+### **The Winning Combination:**
+1. **Cardio** - Burns calories during exercise
+2. **Strength Training** - Builds muscle that burns calories at rest
+3. **Nutrition** - Create a moderate calorie deficit
+
+### **Recommended Approach:**
+- **HIIT Training**: High-intensity interval training
+- **Strength Training**: \`2-3 times\` per week
+- **Consistent Cardio**: \`3-4 times\` per week
+
+*Remember: Sustainable weight loss is about 1-2 pounds per week!*`;
+  }
+  
+  if (message.includes('muscle') || message.includes('gain') || message.includes('build') || message.includes('strong')) {
+    return `## 💪 Building Muscle Effectively
+
+### **Key Principles:**
+- **Progressive Overload**: Gradually increase weight, reps, or sets
+- **Compound Exercises**: Work multiple muscle groups
+
+### **Best Compound Movements:**
+- **Squats** - Full body strength
+- **Deadlifts** - Posterior chain power
+- **Bench Press** - Upper body development
+
+### **Recovery Essentials:**
+- **Protein**: \`1.2-2g per kg\` body weight
+- **Rest**: *Muscles grow during recovery*
+- **Sleep**: \`7-9 hours\` for optimal growth hormone`;
+  }
+  
+  if (message.includes('home') || message.includes('no gym') || message.includes('equipment')) {
+    return `## 🏠 Excellent Home Workouts!
+
+### **No Equipment Needed:**
+- **Push-ups** - Upper body and core
+- **Squats** - Lower body strength
+- **Lunges** - Balance and leg power
+- **Planks** - Core stability
+- **Burpees** - Full body cardio
+
+### **Creative Equipment Ideas:**
+- **Water bottles** - Light weights
+- **Books** - Heavier weights
+- **Resistance bands** - Affordable and space-saving
+
+### **Resources:**
+- **YouTube** has many free workout videos
+- *Start with 20-30 minute sessions*`;
+  }
+  
+  // 默认响应
+  return `## 💬 Great Question!
+
+As your **fitness coach**, I'm here to help you achieve your goals! 
+
+### **To provide better guidance, could you tell me:**
+- Your current **fitness level**
+- Any specific **goals** you have
+- What aspect of **exercise** interests you most
+
+This will help me provide more **personalized advice** tailored just for you! 🎯`;
 };
 
 export default {

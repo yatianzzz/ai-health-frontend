@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Input, Button, Card, Typography, Avatar, Divider } from 'antd';
-import { SendOutlined, UserOutlined, RobotOutlined } from '@ant-design/icons';
+import { Input, Button, Card, Typography, Avatar, Divider, message, Spin } from 'antd';
+import { SendOutlined, UserOutlined, RobotOutlined, LoadingOutlined } from '@ant-design/icons';
+import { getExerciseChatResponse } from '../services/deepseekAPI';
 
 const { Text, Title } = Typography;
 
@@ -9,6 +10,49 @@ interface Message {
   isUser: boolean;
   timestamp: Date;
 }
+
+// 简单的文本格式化函数
+const formatTextContent = (content: string, isUser: boolean): JSX.Element => {
+  const baseColor = isUser ? 'white' : 'inherit';
+  
+  // 处理markdown格式
+  let formattedContent = content
+    .replace(/\*\*(.*?)\*\*/g, '<strong style="font-weight: bold; color: ' + (isUser ? 'white' : '#1890ff') + ';">$1</strong>') // 粗体
+    .replace(/\*(.*?)\*/g, '<em style="font-style: italic; color: ' + (isUser ? 'white' : '#666') + ';">$1</em>') // 斜体
+    .replace(/`(.*?)`/g, '<code style="background-color: ' + (isUser ? 'rgba(255,255,255,0.2)' : '#f5f5f5') + '; padding: 2px 4px; border-radius: 3px; color: ' + (isUser ? 'white' : '#d73a49') + '; font-size: 13px; font-family: monospace;">$1</code>') // 内联代码
+    .replace(/```([\s\S]*?)```/g, '<pre style="background-color: ' + (isUser ? 'rgba(255,255,255,0.1)' : '#f5f5f5') + '; padding: 12px; border-radius: 6px; margin: 8px 0; overflow-x: auto; font-family: monospace; font-size: 13px; color: ' + (isUser ? 'white' : '#333') + ';"><code>$1</code></pre>') // 代码块
+    .replace(/### (.*?)$/gm, '<h3 style="font-size: 16px; font-weight: bold; margin: 12px 0 8px 0; color: ' + (isUser ? 'white' : '#1890ff') + ';">$1</h3>') // 三级标题
+    .replace(/## (.*?)$/gm, '<h2 style="font-size: 18px; font-weight: bold; margin: 12px 0 8px 0; color: ' + (isUser ? 'white' : '#1890ff') + ';">$1</h2>') // 二级标题
+    .replace(/# (.*?)$/gm, '<h1 style="font-size: 20px; font-weight: bold; margin: 12px 0 8px 0; color: ' + (isUser ? 'white' : '#1890ff') + ';">$1</h1>') // 一级标题
+    .replace(/^\- (.*?)$/gm, '<li style="margin: 4px 0; color: ' + baseColor + '; line-height: 1.6;">$1</li>') // 列表项
+    .replace(/^\d+\. (.*?)$/gm, '<li style="margin: 4px 0; color: ' + baseColor + '; line-height: 1.6;">$1</li>') // 数字列表项
+    .replace(/\n\n/g, '</p><p style="margin: 8px 0; color: ' + baseColor + '; line-height: 1.6; font-size: 14px;">') // 段落分隔
+    .replace(/\n/g, '<br />'); // 单行换行
+
+  // 包装列表项
+  formattedContent = formattedContent.replace(/(<li[^>]*>.*?<\/li>)/g, '<ul style="margin: 8px 0; padding-left: 20px;">$1</ul>');
+  
+  // 添加段落包装
+  if (!formattedContent.includes('<p')) {
+    formattedContent = '<p style="margin: 8px 0; color: ' + baseColor + '; line-height: 1.6; font-size: 14px;">' + formattedContent + '</p>';
+  }
+
+  return (
+    <div 
+      style={{ 
+        color: baseColor, 
+        lineHeight: '1.6', 
+        fontSize: '14px' 
+      }}
+      dangerouslySetInnerHTML={{ __html: formattedContent }}
+    />
+  );
+};
+
+// 消息内容渲染组件
+const MessageContent: React.FC<{ content: string; isUser: boolean }> = ({ content, isUser }) => {
+  return formatTextContent(content, isUser);
+};
 
 const ExerciseAIChatBox: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -19,6 +63,7 @@ const ExerciseAIChatBox: React.FC = () => {
     }
   ]);
   const [inputValue, setInputValue] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -49,7 +94,7 @@ const ExerciseAIChatBox: React.FC = () => {
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() || isLoading) return;
 
     // Add user message
     const userMessage: Message = {
@@ -59,28 +104,60 @@ const ExerciseAIChatBox: React.FC = () => {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = inputValue;
     setInputValue('');
+    setIsLoading(true);
 
-    // Simulate AI response after a short delay
-    setTimeout(() => {
-      const aiResponses = [
+    try {
+      // 构建对话历史
+      const conversationHistory = messages.map(msg => ({
+        role: msg.isUser ? 'user' as const : 'assistant' as const,
+        content: msg.content
+      }));
+
+      // 调用DeepSeek API
+      console.log('🏃‍♂️ Calling DeepSeek API for exercise consultation...');
+      const response = await getExerciseChatResponse(currentInput, conversationHistory);
+
+      if (response && response.message) {
+        const aiMessage: Message = {
+          content: response.message,
+          isUser: false,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+        console.log('✅ Exercise AI response received successfully');
+      } else {
+        throw new Error('Invalid response from AI service');
+      }
+    } catch (error) {
+      console.error('❌ Error calling exercise AI API:', error);
+      
+      // 显示错误消息给用户
+      message.error('AI服务暂时不可用，请稍后再试');
+
+      // 使用备用响应
+      const fallbackResponses = [
         "For beginners, I recommend starting with bodyweight exercises like squats, push-ups, and lunges. These help build foundational strength without equipment.",
         "A balanced workout routine should include 150 minutes of moderate activity per week, with a mix of cardio, strength training, and flexibility exercises.",
         "It's important to listen to your body. Make sure to warm up before exercise and cool down afterward to prevent injury.",
-        "Based on your BMI and fitness goals, I would recommend focusing on a mix of cardio and strength training 3-4 times per week.",
-        "Your recent activity shows good progress! Consider adding one more day of strength training to your weekly routine."
+        "Based on general fitness guidelines, I'd recommend focusing on a mix of cardio and strength training 3-4 times per week.",
+        "Great question! Would you like me to help you create a personalized workout plan based on your fitness level and goals?"
       ];
       
-      const randomResponse = aiResponses[Math.floor(Math.random() * aiResponses.length)];
+      const randomResponse = fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
       
-      const aiMessage: Message = {
+      const fallbackMessage: Message = {
         content: randomResponse,
         isUser: false,
         timestamp: new Date()
       };
       
-      setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
+      setMessages(prev => [...prev, fallbackMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -151,10 +228,8 @@ const ExerciseAIChatBox: React.FC = () => {
                 wordWrap: 'break-word'
               }}
             >
-              <Text style={{ color: message.isUser ? 'white' : 'inherit' }}>
-                {message.content}
-              </Text>
-                  </div>
+              <MessageContent content={message.content} isUser={message.isUser} />
+            </div>
             
             {message.isUser && (
               <Avatar
@@ -167,33 +242,71 @@ const ExerciseAIChatBox: React.FC = () => {
                 )}
               </div>
             ))}
+            
+            {/* 加载指示器 */}
+            {isLoading && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-start',
+                marginBottom: '16px'
+              }}>
+                <Avatar
+                  icon={<RobotOutlined />}
+                  style={{ 
+                    backgroundColor: '#0dbbb5',
+                    marginRight: '8px'
+                  }}
+                />
+                <div style={{
+                  maxWidth: '70%',
+                  padding: '12px 16px',
+                  borderRadius: '12px 12px 12px 0',
+                  backgroundColor: 'white',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.09)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <Spin size="small" />
+                  <Text style={{ color: '#666' }}>AI is thinking...</Text>
+                </div>
+              </div>
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
       
       <div>
-        <div style={{ display: 'flex', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', marginBottom: '16px', alignItems: 'stretch' }}>
           <Input
-              placeholder="Type your question here..."
+            placeholder={isLoading ? "AI is thinking..." : "Type your question here..."}
             value={inputValue}
             onChange={handleInputChange}
             onKeyPress={handleKeyPress}
+            disabled={isLoading}
             style={{ 
               borderRadius: '20px 0 0 20px',
-              padding: '8px 16px'
+              padding: '8px 16px',
+              height: '40px',
+              flex: 1
             }}
           />
           <Button
             type="primary"
-            icon={<SendOutlined />}
+            icon={isLoading ? <LoadingOutlined /> : <SendOutlined />}
             onClick={handleSend}
+            loading={isLoading}
+            disabled={isLoading || !inputValue.trim()}
             style={{ 
               borderRadius: '0 20px 20px 0',
+              height: '40px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              padding: '0 16px'
             }}
           >
-            Send
+            {isLoading ? 'Thinking...' : 'Send'}
           </Button>
         </div>
 
@@ -211,13 +324,14 @@ const ExerciseAIChatBox: React.FC = () => {
               key={index}
               size="small"
               type="default"
+              disabled={isLoading}
               style={{ borderRadius: '16px', fontSize: '12px' }}
               onClick={() => handleQuickQuestion(question)}
-                      >
-                        {question}
+            >
+              {question}
             </Button>
-                ))}
-              </div>
+          ))}
+        </div>
       </div>
     </Card>
   );
