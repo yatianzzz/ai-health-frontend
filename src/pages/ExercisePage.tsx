@@ -106,37 +106,37 @@ const ExercisePage: React.FC = () => {
       
       {/* Exercise Overview */}
       <Card 
-        title={
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{
-              width: 56,
-              height: 56,
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#fff7e6',
-              color: '#fa8c16',
-              fontSize: 28,
-              marginRight: 16
-            }}>
-              <FireOutlined />
-            </div>
-            <span>Customized Exercise Guidance</span>
-          </div>
-        }
+        // title={
+        //   <div style={{ display: 'flex', alignItems: 'center' }}>
+        //     <div style={{
+        //       width: 56,
+        //       height: 56,
+        //       borderRadius: '50%',
+        //       display: 'flex',
+        //       alignItems: 'center',
+        //       justifyContent: 'center',
+        //       backgroundColor: '#fff7e6',
+        //       color: '#fa8c16',
+        //       fontSize: 28,
+        //       marginRight: 16
+        //     }}>
+        //       <FireOutlined />
+        //     </div>
+        //     {/* <span>Customized Exercise Guidance</span> */}
+        //   </div>
+        // }
         style={{ marginBottom: 24, borderRadius: 8, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)' }}
         headStyle={{ backgroundColor: 'var(--primary-color)', color: 'white' }}
       >
-        <Paragraph>
+        {/* <Paragraph>
           The system develops scientifically sound fitness plans based on users' exercise data and physical characteristics. 
           It provides daily exercise amounts and summarizes weekly progress based on user feedback and data analysis for continuous improvement.
-        </Paragraph>
+        </Paragraph> */}
         
         {/* BMI-based Exercise Recommendations */}
-        <ExerciseRecommendation bmi={userData.bmi} gender={userData.gender} />
+        {/* <ExerciseRecommendation bmi={userData.bmi} gender={userData.gender} /> */}
         
-        <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 24 }}>
+        <Space direction="vertical" size="large" style={{ width: '100%', marginTop: 0 }}>
           <Title level={4}>AI Exercise Assistant</Title>
           {/* AI Exercise ChatBox */}
           <div 

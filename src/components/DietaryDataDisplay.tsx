@@ -329,18 +329,24 @@ const DietaryDataDisplay: React.FC = React.memo(() => {
     xField: 'date',
     yField: 'value',
     seriesField: 'category',
-    xAxis: {
-      type: 'time',
-      title: { text: 'Date' },
-    },
-    yAxis: {
-      type: 'linear',
-      title: {
-        text: 'Calories (kcal)',
+    axis: {
+      x: {
+        type: 'time',
+        title: 'Date',
+        grid: true,
+        labelFormater:  (text: any) => dayjs(text.date).format('YYYY-MM-DD'),
       },
+      y: {
+        type: 'linear',
+        title: 'Calories (kcal)',
+        grid: true
+      }
     },
     legend: {
       position: 'top',
+    },
+    tooltip: {
+      title: (datum: any) => dayjs(datum.date).format('YYYY-MM-DD'),
     },
     smooth: true,
     animation: {
