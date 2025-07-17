@@ -114,7 +114,7 @@ const ExerciseCompactList: React.FC = () => {
           <Space size={4} style={{ marginLeft: 28 }}>
             <Tag icon={<ClockCircleOutlined />}>{exercise.duration} min</Tag>
             <Tag icon={<FireOutlined />}>{exercise.calories} kcal</Tag>
-            <Tag icon={<HeartOutlined />}>Medium Intensity</Tag>
+            {/* <Tag icon={<HeartOutlined />}>Medium Intensity</Tag> */}
           </Space>
         </div>
       ))}

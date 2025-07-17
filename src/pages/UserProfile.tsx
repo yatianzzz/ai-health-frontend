@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import DashboardLayout from '../layouts/DashboardLayout';
 import UserProfileForm from '../components/UserProfileForm';
+import { getLatestExerciseRecord } from '../services/exerciseAPI';
+import { getWeeklySummary, getAllExerciseRecords } from '../services/exerciseAPI';
 
 const { Title, Text } = Typography;
 
@@ -13,11 +15,63 @@ const UserProfile: React.FC = () => {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const [latestBMI, setLatestBMI] = useState<number | null>(null);
+  const [weeklyExerciseCount, setWeeklyExerciseCount] = useState<number | null>(null);
+  const [todaySteps, setTodaySteps] = useState<number | null>(null);
 
   // Refresh profile when component mounts to ensure latest data
   useEffect(() => {
     refreshProfile();
   }, [refreshProfile]);
+
+  useEffect(() => {
+    const fetchLatestBMI = async () => {
+      try {
+        const res = await getLatestExerciseRecord();
+        if (res.code === 200 && res.data && res.data.bmi) {
+          setLatestBMI(res.data.bmi);
+        } else {
+          setLatestBMI(null);
+        }
+      } catch (e) {
+        setLatestBMI(null);
+      }
+    };
+
+    const fetchWeeklyExercise = async () => {
+      try {
+        const res = await getWeeklySummary();
+        if (res.code === 200 && res.data) {
+          setWeeklyExerciseCount(res.data.recordCount);
+        } else {
+          setWeeklyExerciseCount(null);
+        }
+      } catch {
+        setWeeklyExerciseCount(null);
+      }
+    };
+
+    const fetchTodaySteps = async () => {
+      try {
+        const res = await getAllExerciseRecords();
+        if (res.code === 200 && res.data) {
+          const today = new Date().toISOString().slice(0, 10);
+          const todayTotal = res.data
+            .filter((rec: any) => rec.activityDate.slice(0, 10) === today)
+            .reduce((sum: number, rec: any) => sum + (rec.steps || 0), 0);
+          setTodaySteps(todayTotal);
+        } else {
+          setTodaySteps(null);
+        }
+      } catch {
+        setTodaySteps(null);
+      }
+    };
+
+    fetchLatestBMI();
+    fetchWeeklyExercise();
+    fetchTodaySteps();
+  }, []);
 
 
 
@@ -87,7 +141,7 @@ const UserProfile: React.FC = () => {
       >
         <div 
           style={{ 
-            height: 120, 
+            height: 110, 
             background: 'linear-gradient(135deg, #1890ff 0%, #36cfc9 100%)',
             margin: '-24px -24px 0',
             position: 'relative'
@@ -179,7 +233,7 @@ const UserProfile: React.FC = () => {
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
               <Statistic 
                 title="BMI" 
-                value={26.4} 
+                value={latestBMI !== null ? latestBMI : 'N/A'} 
                 precision={1}
                 valueStyle={{ color: '#fa8c16' }}
                 prefix={<HeartOutlined />}
@@ -190,7 +244,7 @@ const UserProfile: React.FC = () => {
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
               <Statistic 
                 title="Weekly Exercise" 
-                value={3} 
+                value={weeklyExerciseCount !== null ? weeklyExerciseCount : 'N/A'} 
                 suffix="times"
                 valueStyle={{ color: '#52c41a' }}
                 prefix={<FireOutlined />}
@@ -201,13 +255,13 @@ const UserProfile: React.FC = () => {
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
               <Statistic 
                 title="Daily Steps" 
-                value={7500} 
+                value={todaySteps !== null ? todaySteps : 'N/A'} 
                 valueStyle={{ color: '#1890ff' }}
                 prefix={<LineChartOutlined />}
               />
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={8}>
+          {/* <Col xs={24} sm={12} md={8}>
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
               <Statistic 
                 title="Sleep Quality" 
@@ -215,8 +269,8 @@ const UserProfile: React.FC = () => {
                 valueStyle={{ color: '#52c41a' }}
               />
             </Card>
-          </Col>
-          <Col xs={24} sm={12} md={8}>
+          </Col> */}
+          {/* <Col xs={24} sm={12} md={8}>
             <Card bordered={false} style={{ background: '#f9f9f9' }}>
               <Statistic 
                 title="Health Status" 
@@ -225,7 +279,7 @@ const UserProfile: React.FC = () => {
                 prefix={<StarOutlined />}
               />
             </Card>
-          </Col>
+          </Col> */}
         </Row>
 
         <Divider />

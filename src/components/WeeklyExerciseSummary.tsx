@@ -41,7 +41,10 @@ const WeeklyExerciseSummary: React.FC = () => {
       setLoading(true);
       const response = await getWeeklySummary();
       if (response.code === 200 && response.data) {
-        setWeeklyRecords(response.data.weeklyRecords || []);
+        const sortedRecords = (response.data.weeklyRecords || []).slice().sort(
+          (a, b) => new Date(b.activityDate).getTime() - new Date(a.activityDate).getTime()
+        );
+        setWeeklyRecords(sortedRecords || []);
         setRecordsByDay(response.data.recordsByDay || {});
         setRecordCount(response.data.recordCount || 0);
       } else {
