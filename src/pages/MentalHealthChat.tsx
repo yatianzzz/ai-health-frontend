@@ -265,8 +265,8 @@ const MentalHealthChat: React.FC = () => {
           setIsSpeaking(false);
         }, 2000 + Math.random() * 1000);
       } else {
-        // API调用失败，使用fallback
-        message.warning('AI服务暂时不可用，使用备用回复');
+        // API call failed, use fallback
+        message.warning('AI service temporarily unavailable, using backup response');
         const fallbackResponse: Message = {
           id: Date.now() + 1,
           text: getAIResponse(inputValue),
@@ -279,7 +279,7 @@ const MentalHealthChat: React.FC = () => {
       }
     } catch (error) {
       console.error('Error calling AI API:', error);
-      message.error('AI服务连接失败');
+      message.error('AI service connection failed');
 
       // 使用fallback响应
       const fallbackResponse: Message = {
