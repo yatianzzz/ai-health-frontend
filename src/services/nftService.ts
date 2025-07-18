@@ -1,6 +1,5 @@
 import { Connection, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { Program, AnchorProvider, web3 } from '@project-serum/anchor';
-import { NFTProgram } from '../contracts/nft';
 import axios from 'axios';
 
 export interface NFT {
@@ -15,6 +14,11 @@ export interface NFT {
     isEligible?: boolean;
     requiredRecords?: number;
     currentRecords?: number;
+    rarity?: string;
+    attributes?: Array<{
+        trait_type: string;
+        value: string;
+    }>;
 }
 
 export interface UserActivity {
@@ -133,13 +137,67 @@ export const availableNFTs: NFT[] = [
 
 export class NFTService {
     private connection: Connection;
-    private program: NFTProgram;
+    private program: Program; // Changed from NFTProgram to Program
     private provider: AnchorProvider;
 
-    constructor(connection: Connection, program: NFTProgram, provider: AnchorProvider) {
+    constructor(connection: Connection, program: Program, provider: AnchorProvider) {
         this.connection = connection;
         this.program = program;
         this.provider = provider;
+    }
+
+    // 添加缺少的claimNFT方法
+    async claimNFT(nftId: string): Promise<boolean> {
+        try {
+            // 检查资格
+            const isEligible = await this.checkNFTEligibility(nftId);
+            if (!isEligible) {
+                throw new Error('Not eligible for this NFT');
+            }
+
+            // 将NFT标记为已拥有
+            const walletAddress = this.provider.wallet.publicKey?.toString();
+            if (!walletAddress) {
+                throw new Error('Wallet not connected');
+            }
+
+            const ownedNFTs = localStorage.getItem(`ownedNFTs_${walletAddress}`);
+            const ownedNFTList = ownedNFTs ? JSON.parse(ownedNFTs) : [];
+            
+            if (!ownedNFTList.includes(nftId)) {
+                ownedNFTList.push(nftId);
+                localStorage.setItem(`ownedNFTs_${walletAddress}`, JSON.stringify(ownedNFTList));
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error claiming NFT:', error);
+            throw error;
+        }
+    }
+
+    // 添加depositNFT方法
+    async depositNFT(nftId: string): Promise<boolean> {
+        try {
+            const walletAddress = this.provider.wallet.publicKey?.toString();
+            if (!walletAddress) {
+                throw new Error('Wallet not connected');
+            }
+
+            // 模拟存储到链上
+            const chainNFTs = localStorage.getItem(`chainNFTs_${walletAddress}`);
+            const chainNFTList = chainNFTs ? JSON.parse(chainNFTs) : [];
+            
+            if (!chainNFTList.includes(nftId)) {
+                chainNFTList.push(nftId);
+                localStorage.setItem(`chainNFTs_${walletAddress}`, JSON.stringify(chainNFTList));
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error depositing NFT:', error);
+            throw error;
+        }
     }
 
     // Get user activity records
@@ -364,21 +422,47 @@ export class NFTService {
                     progressText = isOwned 
                         ? 'Obtained' 
                         : `${currentRecords}/${nft.requiredRecords} exercise records completed`;
-                } else {
-                    // Other types of NFTs
-                    currentRecords = 0;
-                    isEligible = false;
-                    progressText = nft.progress || 'Conditions not yet available';
                 }
-                
-                console.log(`NFT ${nft.id}: requires ${nft.requiredRecords} records, currently has ${currentRecords} records, eligibility status: ${isEligible}`);
-                
+
+                // 添加rarity和attributes属性
+                const getRarity = (nftId: string): string => {
+                    if (nftId.includes('10percent')) return 'Rare';
+                    if (nftId.includes('8percent')) return 'Uncommon';
+                    if (nftId.includes('5percent')) return 'Common';
+                    if (nftId === 'PowerKing' || nftId === 'regularDiet') return 'Epic';
+                    return 'Common';
+                };
+
+                const getAttributes = (nftId: string) => {
+                    const baseAttributes = [
+                        { trait_type: 'Type', value: nft.category === 'discount' ? 'Discount Card' : 'Achievement' }
+                    ];
+
+                    // Add requirements based on NFT type
+                    if (nftId.includes('percent')) {
+                        // Discount card NFTs
+                        baseAttributes.push({ trait_type: 'Requirements', value: `${(nft.requiredRecords || 0)} Records` });
+                        const discount = nftId.match(/(\d+)percent/)?.[1] || '0';
+                        baseAttributes.push({ trait_type: 'Discount', value: `${discount}%` });
+                    } else if (nftId === 'PowerKing') {
+                        baseAttributes.push({ trait_type: 'Requirements', value: '30 Exercise Records' });
+                        baseAttributes.push({ trait_type: 'Title', value: 'Exercise Master' });
+                    } else if (nftId === 'regularDiet') {
+                        baseAttributes.push({ trait_type: 'Requirements', value: '30 Diet Records' });
+                        baseAttributes.push({ trait_type: 'Title', value: 'Diet Master' });
+                    }
+
+                    return baseAttributes;
+                };
+
                 return {
                     ...nft,
                     isOwned,
                     isEligible,
+                    progress: progressText,
                     currentRecords,
-                    progress: progressText
+                    rarity: getRarity(nft.id),
+                    attributes: getAttributes(nft.id)
                 };
             });
         } catch (error: any) {

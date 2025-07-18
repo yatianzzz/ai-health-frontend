@@ -1,0 +1,261 @@
+{
+  "version": "0.1.0",
+  "name": "health_nft",
+  "instructions": [
+    {
+      "name": "initializeUserRecord",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "userRecord",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "mintHealthNft",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "nftMint",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "userRecord",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "systemProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "metadata",
+          "type": {
+            "defined": "NftMetadata"
+          }
+        },
+        {
+          "name": "healthData",
+          "type": {
+            "defined": "HealthData"
+          }
+        }
+      ]
+    },
+    {
+      "name": "depositNft",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "nftMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userRecord",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "withdrawNft",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "nftMint",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "userRecord",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "transferNft",
+      "accounts": [
+        {
+          "name": "authority",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "fromTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "toTokenAccount",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "tokenProgram",
+          "isMut": false,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "HealthRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "nftMint",
+            "type": "publicKey"
+          },
+          {
+            "name": "nftType",
+            "type": "string"
+          },
+          {
+            "name": "healthData",
+            "type": {
+              "defined": "HealthData"
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UserRecord",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "publicKey"
+          },
+          {
+            "name": "onChainNfts",
+            "type": {
+              "vec": "publicKey"
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    }
+  ],
+  "types": [
+    {
+      "name": "NftMetadata",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "symbol",
+            "type": "string"
+          },
+          {
+            "name": "uri",
+            "type": "string"
+          },
+          {
+            "name": "nftType",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HealthData",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "exerciseRecords",
+            "type": "u32"
+          },
+          {
+            "name": "dietaryRecords",
+            "type": "u32"
+          },
+          {
+            "name": "totalRecords",
+            "type": "u32"
+          }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidNFTType",
+      "msg": "Invalid NFT type"
+    },
+    {
+      "code": 6001,
+      "name": "InsufficientHealthRecords",
+      "msg": "Insufficient health records"
+    },
+    {
+      "code": 6002,
+      "name": "NFTNotFound",
+      "msg": "NFT not found"
+    }
+  ]
+} 

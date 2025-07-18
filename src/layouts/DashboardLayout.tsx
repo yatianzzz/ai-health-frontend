@@ -31,7 +31,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     if (path.includes('/dashboard/exercise')) return '3';
     if (path.includes('/dashboard/mental-health')) return '4';
     if (path.includes('/dashboard/nft-incentive')) return '5';
-    if (path.includes('/dashboard/nft-admin')) return '6';
+    // if (path.includes('/dashboard/nft-admin')) return '6';
     return '1'; // Default to home
   };
   
@@ -52,9 +52,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       case '5':
         navigate('/dashboard/nft-incentive');
         break;
-      case '6':
-        navigate('/dashboard/nft-admin');
-        break;
+      // case '6':
+      //   navigate('/dashboard/nft-admin');
+      //   break;
       default:
         navigate('/dashboard/home');
     }
@@ -166,7 +166,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             { key: '3', icon: <FireOutlined />, label: 'Exercise Guidance' },
             { key: '4', icon: <SmileOutlined />, label: 'Mental Health Support' },
             { key: '5', icon: <GiftOutlined />, label: 'NFT Incentive' },
-            { key: '6', icon: <SettingOutlined />, label: 'NFT Admin' },
+            // { key: '6', icon: <SettingOutlined />, label: 'NFT Admin' },
           ]}
         />
       </Sider>

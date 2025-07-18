@@ -5,12 +5,13 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { Program, AnchorProvider } from '@project-serum/anchor';
-import { SOLANA_RPC_ENDPOINT, SUPPORTED_WALLETS } from '../config/wallet';
+import { SOLANA_RPC_ENDPOINT, getWalletAdapters } from '../config/wallet';
 import { WalletConnect } from '../components/WalletConnect';
 import { AdminMint } from '../components/AdminMint';
 import { NFTStatistics } from '../components/NFTStatistics';
 import { UserNFTManager } from '../components/UserNFTManager';
 import { NFTService } from '../services/nftService';
+import { RealNFTService } from '../services/realNftService';
 import { getNFTProgram } from '../contracts/nft';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../layouts/DashboardLayout';
@@ -220,9 +221,11 @@ const NFTAdminCore: React.FC = () => {
 
 // Main NFT Admin page component with wallet providers
 const NFTAdmin: React.FC = () => {
+    const wallets = getWalletAdapters();
+    
     return (
         <ConnectionProvider endpoint={SOLANA_RPC_ENDPOINT}>
-            <WalletProvider wallets={SUPPORTED_WALLETS} autoConnect>
+            <WalletProvider wallets={wallets} autoConnect>
                 <WalletModalProvider>
                     <NFTAdminCore />
                 </WalletModalProvider>

@@ -134,8 +134,8 @@ const ExerciseAIChatBox: React.FC = () => {
     } catch (error) {
       console.error('❌ Error calling exercise AI API:', error);
       
-      // 显示错误消息给用户
-      message.error('AI服务暂时不可用，请稍后再试');
+      // Display error message to user
+      message.error('AI service temporarily unavailable, please try again later');
 
       // 使用备用响应
       const fallbackResponses = [

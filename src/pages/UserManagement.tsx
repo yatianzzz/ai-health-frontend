@@ -21,56 +21,56 @@ const mockData: DataType[] = [
   {
     key: '1',
     id: 'USR001',
-    name: '张三',
+    name: 'John Smith',
     age: 32,
-    gender: '男',
+    gender: 'Male',
     phone: '13812345678',
-    email: 'zhangsan@example.com',
-    status: '活跃',
+    email: 'john.smith@example.com',
+    status: 'Active',
     registrationDate: '2023-05-10',
   },
   {
     key: '2',
     id: 'USR002',
-    name: '李四',
+    name: 'Jane Doe',
     age: 42,
-    gender: '男',
+    gender: 'Female',
     phone: '13987654321',
-    email: 'lisi@example.com',
-    status: '活跃',
+    email: 'jane.doe@example.com',
+    status: 'Active',
     registrationDate: '2023-06-15',
   },
   {
     key: '3',
     id: 'USR003',
-    name: '王五',
+    name: 'Bob Johnson',
     age: 28,
-    gender: '女',
+    gender: 'Male',
     phone: '13709876543',
-    email: 'wangwu@example.com',
-    status: '未激活',
+    email: 'bob.johnson@example.com',
+    status: 'Inactive',
     registrationDate: '2023-07-22',
   },
   {
     key: '4',
     id: 'USR004',
-    name: '赵六',
+    name: 'Alice Wilson',
     age: 35,
-    gender: '男',
+    gender: 'Female',
     phone: '13612345678',
-    email: 'zhaoliu@example.com',
-    status: '已禁用',
+    email: 'alice.wilson@example.com',
+    status: 'Disabled',
     registrationDate: '2023-08-05',
   },
   {
     key: '5',
     id: 'USR005',
-    name: '钱七',
+    name: 'Charlie Brown',
     age: 29,
-    gender: '女',
+    gender: 'Male',
     phone: '13512345678',
-    email: 'qianqi@example.com',
-    status: '活跃',
+    email: 'charlie.brown@example.com',
+    status: 'Active',
     registrationDate: '2023-09-12',
   },
 ];
@@ -78,58 +78,58 @@ const mockData: DataType[] = [
 const UserManagement: React.FC = () => {
   const columns = [
     {
-      title: '用户ID',
+      title: 'User ID',
       dataIndex: 'id',
       key: 'id',
     },
     {
-      title: '姓名',
+      title: 'Name',
       dataIndex: 'name',
       key: 'name',
     },
     {
-      title: '年龄',
+      title: 'Age',
       dataIndex: 'age',
       key: 'age',
     },
     {
-      title: '性别',
+      title: 'Gender',
       dataIndex: 'gender',
       key: 'gender',
     },
     {
-      title: '手机号',
+      title: 'Phone',
       dataIndex: 'phone',
       key: 'phone',
     },
     {
-      title: '邮箱',
+      title: 'Email',
       dataIndex: 'email',
       key: 'email',
     },
     {
-      title: '状态',
+      title: 'Status',
       dataIndex: 'status',
       key: 'status',
       render: (text: string) => {
         let color = 'green';
-        if (text === '未激活') color = 'geekblue';
-        if (text === '已禁用') color = 'volcano';
+        if (text === 'Inactive') color = 'geekblue';
+        if (text === 'Disabled') color = 'volcano';
         return <Tag color={color}>{text}</Tag>;
       },
     },
     {
-      title: '注册日期',
+      title: 'Registration Date',
       dataIndex: 'registrationDate',
       key: 'registrationDate',
     },
     {
-      title: '操作',
+      title: 'Actions',
       key: 'action',
       render: (_: any, record: DataType) => (
         <Space size="middle">
-          <Button type="text" icon={<EditOutlined />} size="small">编辑</Button>
-          <Button type="text" danger icon={<DeleteOutlined />} size="small">删除</Button>
+          <Button type="text" icon={<EditOutlined />} size="small">Edit</Button>
+          <Button type="text" danger icon={<DeleteOutlined />} size="small">Delete</Button>
         </Space>
       ),
     },
@@ -140,14 +140,14 @@ const UserManagement: React.FC = () => {
       <Card>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
           <Search
-            placeholder="请输入用户名、ID或手机号搜索"
+            placeholder="Search by username, ID or phone number"
             allowClear
             enterButton={<SearchOutlined />}
             style={{ width: 300 }}
             onSearch={(value) => console.log(value)}
           />
           <Button type="primary" icon={<PlusOutlined />}>
-            添加用户
+            Add User
           </Button>
         </div>
         <Table
