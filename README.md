@@ -63,9 +63,6 @@ ai-health-frontend/
 - 3D Graphics Rendering: Three.js+React Three Fiber
 - Chart Visualization @ ant-design/charts 2.2.7
 - Style Management Styled Components 6.1.17
-- Routing Management React Router DOM 6.22.0
-- HTTP Client Axios 1.10.0
-- Building Tool Create React App 5.0.1
 
 ### Installation
 
