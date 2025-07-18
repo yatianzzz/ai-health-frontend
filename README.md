@@ -95,6 +95,155 @@ npm run build
   - Mint NFTs for users, view statistics, manage user NFTs, initialize demo data
 
 
+## Solana & NFT Development Setup
+
+### 1. Install Solana CLI
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSfL https://solana-install.solana.workers.dev | bash
+```
+
+After installation, you should see output similar to:
+
+```
+Installed Versions:
+Rust: rustc 1.86.0
+Solana CLI: solana-cli 2.2.12
+Anchor CLI: anchor-cli 0.31.1
+Node.js: v23.11.0
+Yarn: 1.22.1
+```
+
+### 2. Generate a New Wallet
+
+```bash
+solana-keygen new --outfile ~/.config/solana/id.json
+```
+
+### 3. View Wallet Address
+
+```bash
+solana-keygen pubkey ~/.config/solana/id.json
+```
+
+### 4. Set Default Wallet
+
+```bash
+solana config set --keypair ~/.config/solana/id.json
+```
+
+### 5. Configure Devnet
+
+```bash
+solana config set --url https://api.devnet.solana.com
+solana config get
+```
+
+### 6. Get Test Tokens
+
+```bash
+solana airdrop 2
+solana balance
+```
+
+### 7. Install Project Dependencies
+
+```bash
+npm install
+```
+
+### 8. Smart Contract Development
+
+#### a. Generate Program Keypair and Get Program ID
+
+```bash
+solana-keygen new --outfile target/deploy/nft_marketplace-keypair.json
+solana-keygen pubkey target/deploy/nft_marketplace-keypair.json
+```
+
+#### b. Update Anchor.toml
+
+Example:
+
+```toml
+[features]
+seeds = false
+skip-lint = false
+
+[programs.devnet]
+nft_marketplace = "<Your Program ID>"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
+```
+
+### 9. Frontend Dependencies for Solana
+
+```bash
+npm install @solana/web3.js @solana/wallet-adapter-react @solana/wallet-adapter-react-ui @solana/wallet-adapter-wallets @coral-xyz/anchor
+```
+
+### 10. Build, Test, and Deploy
+
+#### a. Build the Program
+
+```bash
+anchor build
+```
+
+#### b. Run Tests
+
+```bash
+anchor test
+```
+
+#### c. Deploy to Devnet
+
+```bash
+anchor deploy --provider.cluster devnet
+```
+
+#### d. Verify Deployment
+
+```bash
+solana program show <Your Program ID> --url devnet
+```
+
+### 11. Common Commands Reference
+
+```bash
+# View Solana config
+solana config get
+
+# Check balance
+solana balance
+
+# Request test SOL
+airdrop 2
+
+# Build Anchor project
+anchor build
+
+# Test Anchor project
+anchor test
+
+# Deploy program
+anchor deploy
+
+# View program logs
+solana logs <Your Program ID>
+
+# Upgrade program
+anchor upgrade <Your Program ID>
+```
+
 ## License
 
 This project is for academic and demonstration purposes. For commercial use or further development, please contact the project maintainers.
